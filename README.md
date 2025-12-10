@@ -14,7 +14,7 @@ Download the latest release from [GitHub Releases](https://github.com/robzolkos/
 
 **From source**
 ```bash
-git clone https://github.com/fizzy/fizzy-cli.git
+git clone https://github.com/robzolkos/fizzy-cli.git
 cd fizzy-cli
 bundle install
 ./bin/fizzy --help
