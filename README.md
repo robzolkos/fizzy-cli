@@ -6,11 +6,6 @@ A command-line interface for the [Fizzy](https://app.fizzy.do) API.
 
 Download the latest release from [GitHub Releases](https://github.com/fizzy/fizzy-cli/releases) and add it to your PATH.
 
-**macOS (Homebrew)**
-```bash
-brew install fizzy/tap/fizzy-cli
-```
-
 **From source**
 ```bash
 git clone https://github.com/fizzy/fizzy-cli.git
