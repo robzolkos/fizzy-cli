@@ -43,5 +43,8 @@ module Fizzy
 
     desc "notification SUBCOMMAND", "Manage notifications"
     subcommand "notification", Commands::Notification
+
+    desc "upload SUBCOMMAND", "Upload files for rich text"
+    subcommand "upload", Commands::Upload
   end
 end

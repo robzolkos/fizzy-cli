@@ -43,6 +43,7 @@ module Fizzy
       option :description_file, type: :string, desc: "Read description from file"
       option :status, type: :string, desc: "Card status"
       option :tag_ids, type: :string, desc: "Comma-separated tag IDs"
+      option :image, type: :string, desc: "Path to header image file"
       def create
         card_params = {
           title: options[:title]
@@ -60,7 +61,15 @@ module Fizzy
           card_params[:tag_ids] = options[:tag_ids].split(",").map(&:strip)
         end
 
-        result = client.post(client.account_path("/boards/#{options[:board]}/cards"), { card: card_params })
+        result = if options[:image]
+          client.post_multipart(
+            client.account_path("/boards/#{options[:board]}/cards"),
+            { card: card_params },
+            { "card[image]" => options[:image] }
+          )
+        else
+          client.post(client.account_path("/boards/#{options[:board]}/cards"), { card: card_params })
+        end
         output(result)
       rescue Fizzy::Error => e
         output_error(e)
@@ -72,6 +81,7 @@ module Fizzy
       option :description_file, type: :string, desc: "Read description from file"
       option :status, type: :string, desc: "Card status"
       option :tag_ids, type: :string, desc: "Comma-separated tag IDs"
+      option :image, type: :string, desc: "Path to header image file"
       def update(number)
         card_params = {}
         card_params[:title] = options[:title] if options.key?(:title)
@@ -87,7 +97,15 @@ module Fizzy
           card_params[:tag_ids] = options[:tag_ids].split(",").map(&:strip)
         end
 
-        result = client.put(client.account_path("/cards/#{number}"), { card: card_params })
+        result = if options[:image]
+          client.put_multipart(
+            client.account_path("/cards/#{number}"),
+            { card: card_params },
+            { "card[image]" => options[:image] }
+          )
+        else
+          client.put(client.account_path("/cards/#{number}"), { card: card_params })
+        end
         output(result)
       rescue Fizzy::Error => e
         output_error(e)

@@ -1,0 +1,2 @@
+This is a test document for Fizzy CLI file upload testing.
+It contains some sample text to verify uploads work correctly.

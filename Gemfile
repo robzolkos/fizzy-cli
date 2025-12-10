@@ -1,6 +1,7 @@
 source "https://rubygems.org"
 
 gem "thor", "~> 1.3"
+gem "base64"
 
 group :development, :test do
   gem "minitest", "~> 5.20"

@@ -28,11 +28,20 @@ module Fizzy
 
       desc "update ID", "Update a user"
       option :name, type: :string, desc: "User name"
+      option :avatar, type: :string, desc: "Path to avatar image file"
       def update(id)
         user_params = {}
         user_params[:name] = options[:name] if options.key?(:name)
 
-        result = client.put(client.account_path("/users/#{id}"), { user: user_params })
+        result = if options[:avatar]
+          client.put_multipart(
+            client.account_path("/users/#{id}"),
+            { user: user_params },
+            { "user[avatar]" => options[:avatar] }
+          )
+        else
+          client.put(client.account_path("/users/#{id}"), { user: user_params })
+        end
         output(result)
       rescue Fizzy::Error => e
         output_error(e)
