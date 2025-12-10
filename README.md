@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/86b91eae-7e8a-418c-a99e-3493ed7290cc
 
 ## Installation
 
-Download the latest release from [GitHub Releases](https://github.com/fizzy/fizzy-cli/releases) and add it to your PATH.
+Download the latest release from [GitHub Releases](https://github.com/robzolkos/fizzy-cli/releases) and add it to your PATH.
 
 **From source**
 ```bash
