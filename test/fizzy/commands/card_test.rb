@@ -37,7 +37,7 @@ class Fizzy::Commands::CardTest < Fizzy::TestCase
 
   def test_list_with_filters
     stub_request(:get, "https://app.fizzy.do/test_account/cards")
-      .with(query: { "board_id" => "10", "status" => "published" })
+      .with(query: { "board_ids[]" => "10", "status" => "published" })
       .to_return(
         status: 200,
         body: '[{"id": "1", "title": "Filtered Card"}]',

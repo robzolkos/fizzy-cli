@@ -3,18 +3,16 @@ module Fizzy
     class Card < Base
       desc "list", "List cards"
       option :board, type: :string, desc: "Filter by board ID"
-      option :column, type: :string, desc: "Filter by column ID"
       option :tag, type: :string, desc: "Filter by tag ID"
-      option :assignee, type: :string, desc: "Filter by assignee ID"
+      option :assignee, type: :string, desc: "Filter by assignee user ID"
       option :status, type: :string, desc: "Filter by status (published, closed, not_now)"
       option :page, type: :numeric, desc: "Page number"
       option :all, type: :boolean, default: false, desc: "Fetch all pages"
       def list
         params = {}
-        params[:board_id] = options[:board] if options[:board]
-        params[:column_id] = options[:column] if options[:column]
-        params[:tag_id] = options[:tag] if options[:tag]
-        params[:assignee_id] = options[:assignee] if options[:assignee]
+        params["board_ids[]"] = options[:board] if options[:board]
+        params["tag_ids[]"] = options[:tag] if options[:tag]
+        params["assignee_ids[]"] = options[:assignee] if options[:assignee]
         params[:status] = options[:status] if options[:status]
         params[:page] = options[:page] if options[:page]
 
