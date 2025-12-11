@@ -36,7 +36,7 @@ class Fizzy::Commands::UploadTest < Fizzy::TestCase
 
   def test_upload_file_creates_direct_upload
     # Step 1: Create direct upload
-    stub_request(:post, "https://app.fizzy.do/rails/active_storage/direct_uploads")
+    stub_request(:post, "https://app.fizzy.do/test_account/rails/active_storage/direct_uploads")
       .to_return(
         status: 200,
         body: {

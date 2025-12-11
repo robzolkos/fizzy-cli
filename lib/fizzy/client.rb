@@ -71,7 +71,7 @@ module Fizzy
         }
       }
 
-      upload_info = post("/rails/active_storage/direct_uploads", blob_params)
+      upload_info = post(account_path("/rails/active_storage/direct_uploads"), blob_params)
       raise Fizzy::Error, "Failed to create direct upload" unless upload_info && upload_info[:data]
 
       data = upload_info[:data]
