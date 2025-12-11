@@ -3,18 +3,16 @@ module Fizzy
     class Card < Base
       desc "list", "List cards"
       option :board, type: :string, desc: "Filter by board ID"
-      option :column, type: :string, desc: "Filter by column ID"
       option :tag, type: :string, desc: "Filter by tag ID"
-      option :assignee, type: :string, desc: "Filter by assignee ID"
+      option :assignee, type: :string, desc: "Filter by assignee user ID"
       option :status, type: :string, desc: "Filter by status (published, closed, not_now)"
       option :page, type: :numeric, desc: "Page number"
       option :all, type: :boolean, default: false, desc: "Fetch all pages"
       def list
         params = {}
-        params[:board_id] = options[:board] if options[:board]
-        params[:column_id] = options[:column] if options[:column]
-        params[:tag_id] = options[:tag] if options[:tag]
-        params[:assignee_id] = options[:assignee] if options[:assignee]
+        params["board_ids[]"] = options[:board] if options[:board]
+        params["tag_ids[]"] = options[:tag] if options[:tag]
+        params["assignee_ids[]"] = options[:assignee] if options[:assignee]
         params[:status] = options[:status] if options[:status]
         params[:page] = options[:page] if options[:page]
 
@@ -44,6 +42,7 @@ module Fizzy
       option :status, type: :string, desc: "Card status"
       option :tag_ids, type: :string, desc: "Comma-separated tag IDs"
       option :image, type: :string, desc: "Path to header image file"
+      option :created_at, type: :string, desc: "Custom creation timestamp (ISO 8601)"
       def create
         card_params = {
           title: options[:title]
@@ -56,6 +55,7 @@ module Fizzy
         end
 
         card_params[:status] = options[:status] if options[:status]
+        card_params[:created_at] = options[:created_at] if options[:created_at]
 
         if options[:tag_ids]
           card_params[:tag_ids] = options[:tag_ids].split(",").map(&:strip)
@@ -82,10 +82,12 @@ module Fizzy
       option :status, type: :string, desc: "Card status"
       option :tag_ids, type: :string, desc: "Comma-separated tag IDs"
       option :image, type: :string, desc: "Path to header image file"
+      option :created_at, type: :string, desc: "Custom creation timestamp (ISO 8601)"
       def update(number)
         card_params = {}
         card_params[:title] = options[:title] if options.key?(:title)
         card_params[:status] = options[:status] if options.key?(:status)
+        card_params[:created_at] = options[:created_at] if options[:created_at]
 
         if options[:description_file]
           card_params[:description] = File.read(options[:description_file])
