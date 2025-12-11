@@ -131,6 +131,26 @@ class Fizzy::Commands::CardTest < Fizzy::TestCase
     assert result["success"]
   end
 
+  def test_create_with_created_at
+    stub_request(:post, "https://app.fizzy.do/test_account/boards/5/cards")
+      .with(
+        body: { card: { title: "Card", created_at: "2024-01-15T10:30:00Z" } }.to_json
+      )
+      .to_return(
+        status: 201,
+        body: '{"id": "203", "title": "Card", "created_at": "2024-01-15T10:30:00Z"}',
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    output = capture_output do
+      Fizzy::Commands::Card.new([], { board: "5", title: "Card", created_at: "2024-01-15T10:30:00Z" }).invoke(:create, [])
+    end
+
+    result = JSON.parse(output)
+    assert result["success"]
+    assert_equal "2024-01-15T10:30:00Z", result["data"]["created_at"]
+  end
+
   def test_update_card
     stub_request(:put, "https://app.fizzy.do/test_account/cards/42")
       .with(
@@ -149,6 +169,26 @@ class Fizzy::Commands::CardTest < Fizzy::TestCase
     result = JSON.parse(output)
     assert result["success"]
     assert_equal "Updated Title", result["data"]["title"]
+  end
+
+  def test_update_card_with_created_at
+    stub_request(:put, "https://app.fizzy.do/test_account/cards/42")
+      .with(
+        body: { card: { created_at: "2024-01-15T10:30:00Z" } }.to_json
+      )
+      .to_return(
+        status: 200,
+        body: '{"id": "100", "number": 42, "created_at": "2024-01-15T10:30:00Z"}',
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    output = capture_output do
+      Fizzy::Commands::Card.new([], { created_at: "2024-01-15T10:30:00Z" }).invoke(:update, ["42"])
+    end
+
+    result = JSON.parse(output)
+    assert result["success"]
+    assert_equal "2024-01-15T10:30:00Z", result["data"]["created_at"]
   end
 
   def test_delete_card

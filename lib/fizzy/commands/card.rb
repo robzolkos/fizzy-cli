@@ -42,6 +42,7 @@ module Fizzy
       option :status, type: :string, desc: "Card status"
       option :tag_ids, type: :string, desc: "Comma-separated tag IDs"
       option :image, type: :string, desc: "Path to header image file"
+      option :created_at, type: :string, desc: "Custom creation timestamp (ISO 8601)"
       def create
         card_params = {
           title: options[:title]
@@ -54,6 +55,7 @@ module Fizzy
         end
 
         card_params[:status] = options[:status] if options[:status]
+        card_params[:created_at] = options[:created_at] if options[:created_at]
 
         if options[:tag_ids]
           card_params[:tag_ids] = options[:tag_ids].split(",").map(&:strip)
@@ -80,10 +82,12 @@ module Fizzy
       option :status, type: :string, desc: "Card status"
       option :tag_ids, type: :string, desc: "Comma-separated tag IDs"
       option :image, type: :string, desc: "Path to header image file"
+      option :created_at, type: :string, desc: "Custom creation timestamp (ISO 8601)"
       def update(number)
         card_params = {}
         card_params[:title] = options[:title] if options.key?(:title)
         card_params[:status] = options[:status] if options.key?(:status)
+        card_params[:created_at] = options[:created_at] if options[:created_at]
 
         if options[:description_file]
           card_params[:description] = File.read(options[:description_file])

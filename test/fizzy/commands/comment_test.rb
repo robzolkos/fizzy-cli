@@ -126,6 +126,27 @@ class Fizzy::Commands::CommentTest < Fizzy::TestCase
     assert_equal "VALIDATION_ERROR", result["error"]["code"]
   end
 
+  def test_create_comment_with_created_at
+    stub_request(:post, "https://app.fizzy.do/test_account/cards/42/comments")
+      .with(
+        body: { comment: { body: "New comment", created_at: "2024-01-15T10:30:00Z" } }.to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+      .to_return(
+        status: 201,
+        body: '{"id": "c2", "body": {"plain_text": "New comment"}, "created_at": "2024-01-15T10:30:00Z"}',
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    output = capture_output do
+      Fizzy::Commands::Comment.new([], { card: "42", body: "New comment", created_at: "2024-01-15T10:30:00Z" }).invoke(:create, [])
+    end
+
+    result = JSON.parse(output)
+    assert result["success"]
+    assert_equal "2024-01-15T10:30:00Z", result["data"]["created_at"]
+  end
+
   def test_update_comment
     stub_request(:put, "https://app.fizzy.do/test_account/cards/42/comments/c1")
       .with(
@@ -143,6 +164,26 @@ class Fizzy::Commands::CommentTest < Fizzy::TestCase
 
     result = JSON.parse(output)
     assert result["success"]
+  end
+
+  def test_update_comment_with_created_at
+    stub_request(:put, "https://app.fizzy.do/test_account/cards/42/comments/c1")
+      .with(
+        body: { comment: { created_at: "2024-01-15T10:30:00Z" } }.to_json
+      )
+      .to_return(
+        status: 200,
+        body: '{"id": "c1", "created_at": "2024-01-15T10:30:00Z"}',
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    output = capture_output do
+      Fizzy::Commands::Comment.new([], { card: "42", created_at: "2024-01-15T10:30:00Z" }).invoke(:update, ["c1"])
+    end
+
+    result = JSON.parse(output)
+    assert result["success"]
+    assert_equal "2024-01-15T10:30:00Z", result["data"]["created_at"]
   end
 
   def test_delete_comment

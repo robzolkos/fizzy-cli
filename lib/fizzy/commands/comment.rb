@@ -32,6 +32,7 @@ module Fizzy
       option :card, required: true, type: :string, desc: "Card number"
       option :body, type: :string, desc: "Comment body (supports rich text)"
       option :body_file, type: :string, desc: "Read body from file"
+      option :created_at, type: :string, desc: "Custom creation timestamp (ISO 8601)"
       def create
         comment_params = {}
 
@@ -43,6 +44,8 @@ module Fizzy
           raise Fizzy::ValidationError, "Either --body or --body-file is required"
         end
 
+        comment_params[:created_at] = options[:created_at] if options[:created_at]
+
         result = client.post(client.account_path("/cards/#{options[:card]}/comments"), { comment: comment_params })
         output(result)
       rescue Fizzy::Error => e
@@ -53,6 +56,7 @@ module Fizzy
       option :card, required: true, type: :string, desc: "Card number"
       option :body, type: :string, desc: "Comment body (supports rich text)"
       option :body_file, type: :string, desc: "Read body from file"
+      option :created_at, type: :string, desc: "Custom creation timestamp (ISO 8601)"
       def update(id)
         comment_params = {}
 
@@ -61,6 +65,8 @@ module Fizzy
         elsif options[:body]
           comment_params[:body] = options[:body]
         end
+
+        comment_params[:created_at] = options[:created_at] if options[:created_at]
 
         result = client.put(client.account_path("/cards/#{options[:card]}/comments/#{id}"), { comment: comment_params })
         output(result)
