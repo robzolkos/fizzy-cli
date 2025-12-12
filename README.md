@@ -27,7 +27,7 @@ bundle install
 2. Configure the CLI:
 
 ```bash
-.bin/fizzy auth login YOUR_TOKEN
+./bin/fizzy auth login YOUR_TOKEN
 ```
 
 3. List your accounts:
