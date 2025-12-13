@@ -43,6 +43,38 @@ fizzy identity show
 export FIZZY_ACCOUNT=897362094
 ```
 
+**Note:**
+If you're using a self-hosted domain instead of the default `https://app.fizzy.do`, specify it using one of these methods:
+
+**Option 1: Per-command flag (temporary)**
+```bash
+fizzy identity show --api-url=https://your_domain
+```
+
+**Option 2: Configuration file (permanent)**
+Add to your `~/.fizzy/config.yml`:
+
+```yml
+---
+token: your_token
+account: your_account_id
+api_url: https://your_domain
+```
+
+The config file method is recommended for self-hosted setups. Without specifying the API URL, you may encounter 302 redirect errors.
+```bash
+{
+  "success": false,
+  "error": {
+    "code": "ERROR",
+    "message": "Request failed: 302 Found"
+  },
+  "meta": {
+    "timestamp": "2025-12-13T07:55:38Z"
+  }
+}
+```
+
 ## Usage
 
 ```
