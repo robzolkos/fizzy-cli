@@ -52,7 +52,7 @@ fizzy identity show --api-url=https://your_domain
 ```
 
 **Option 2: Configuration file (permanent)**
-Add to your `~/.fizzy/config.yml`:
+Add to your `~/.fizzy/config.yaml`:
 
 ```yml
 ---
