@@ -1,7 +1,0 @@
-#!/usr/bin/env ruby
-
-$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
-
-require "fizzy"
-
-Fizzy::CLI.start(ARGV)

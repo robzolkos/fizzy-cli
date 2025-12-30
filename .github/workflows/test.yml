@@ -1,10 +1,10 @@
-name: Test
+name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
-    branches: [master]
+    branches: [master, main]
 
 jobs:
   test:
@@ -13,11 +13,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          ruby-version-file: '.ruby-version'
-          bundler-cache: true
+          go-version-file: go.mod
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
 
       - name: Run tests
-        run: bundle exec rake test
+        run: go test -v ./...
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build -o bin/fizzy ./cmd/fizzy
+
+      - name: Verify binary runs
+        run: ./bin/fizzy --help

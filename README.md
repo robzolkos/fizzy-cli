@@ -1,23 +1,24 @@
 # Fizzy CLI
 
-A command-line interface for the [Fizzy](https://fizzy.do) API.  Read API [docs](https://github.com/basecamp/fizzy/blob/main/docs/API.md).
-
-
+A command-line interface for the [Fizzy](https://fizzy.do) API. See the official API docs at https://github.com/basecamp/fizzy/blob/main/docs/API.md.
 
 https://github.com/user-attachments/assets/86b91eae-7e8a-418c-a99e-3493ed7290cc
-
-
 
 ## Installation
 
 Download the latest release from [GitHub Releases](https://github.com/robzolkos/fizzy-cli/releases) and add it to your PATH.
 
+**With Go**
+```bash
+go install github.com/robzolkos/fizzy-cli/cmd/fizzy@latest
+```
+
 **From source**
 ```bash
 git clone https://github.com/robzolkos/fizzy-cli.git
 cd fizzy-cli
-bundle install
-./bin/fizzy --help
+go build -o fizzy ./cmd/fizzy
+./fizzy --help
 ```
 
 ## Quick Start
@@ -27,7 +28,7 @@ bundle install
 2. Configure the CLI:
 
 ```bash
-./bin/fizzy auth login YOUR_TOKEN
+fizzy auth login YOUR_TOKEN
 ```
 
 3. List your accounts:
@@ -43,36 +44,28 @@ fizzy identity show
 export FIZZY_ACCOUNT=897362094
 ```
 
-**Note:**
+5. (Optional) Set your default board:
+
+```bash
+export FIZZY_BOARD=BOARD_ID
+```
+
+**Self-hosted domains:**
 If you're using a self-hosted domain instead of the default `https://app.fizzy.do`, specify it using one of these methods:
 
-**Option 1: Per-command flag (temporary)**
+**Option 1: Per-command flag**
 ```bash
 fizzy identity show --api-url=https://your_domain
 ```
 
-**Option 2: Configuration file (permanent)**
-Add to your `~/.fizzy/config.yaml`:
+**Option 2: Configuration file**
+Add to your `~/.config/fizzy/config.yaml`:
 
-```yml
----
+```yaml
 token: your_token
 account: your_account_id
 api_url: https://your_domain
-```
-
-The config file method is recommended for self-hosted setups. Without specifying the API URL, you may encounter 302 redirect errors.
-```bash
-{
-  "success": false,
-  "error": {
-    "code": "ERROR",
-    "message": "Request failed: 302 Found"
-  },
-  "meta": {
-    "timestamp": "2025-12-13T07:55:38Z"
-  }
-}
+board: your_default_board_id
 ```
 
 ## Usage
@@ -81,14 +74,17 @@ The config file method is recommended for self-hosted setups. Without specifying
 fizzy <resource> <action> [options]
 ```
 
+```bash
+fizzy version
+```
+
 ### Global Options
 
 | Option | Environment Variable | Description |
 |--------|---------------------|-------------|
 | `--token` | `FIZZY_TOKEN` | API access token |
 | `--account` | `FIZZY_ACCOUNT` | Account slug (from `fizzy identity show`) |
-| `--format` | | Output format: `json` (default), `text` |
-| `--quiet` | | Suppress non-essential output |
+| `--api-url` | `FIZZY_API_URL` | API base URL (default: https://app.fizzy.do) |
 | `--verbose` | | Show request/response details |
 
 ## Commands
@@ -270,7 +266,7 @@ fizzy identity show
 
 ## Output Format
 
-All commands output JSON by default:
+Command results output JSON. (`--help` and `--version` output plain text.)
 
 ```json
 {
@@ -282,7 +278,7 @@ All commands output JSON by default:
 }
 ```
 
-When creating resources (e.g., cards, comments), the CLI automatically follows the `Location` header returned by the API to fetch the complete resource data, including server-generated fields like `id` and `number`:
+When creating resources, the CLI automatically follows the `Location` header to fetch the complete resource data:
 
 ```json
 {
@@ -328,17 +324,55 @@ Errors return a non-zero exit code and structured error info:
 
 ## Configuration
 
-The CLI looks for configuration in:
+The CLI looks for configuration in multiple locations:
+
+### Global Configuration
+
+Global config is stored in one of these locations:
+- `~/.config/fizzy/config.yaml` (preferred)
 - `~/.fizzy/config.yaml`
-- `~/.config/fizzy/config.yaml`
 
 ```yaml
 token: fizzy_abc123...
 account: 897362094
 api_url: https://app.fizzy.do
+board: 123456
 ```
 
-Environment variables and command-line flags override the config file.
+### Local Project Configuration
+
+You can also create a `.fizzy.yaml` file in your project directory. The CLI walks up the directory tree to find it, so you can run commands from any subdirectory.
+
+```yaml
+# .fizzy.yaml - project-specific settings
+account: 123456789
+api_url: https://self-hosted.example.com
+board: 123456
+```
+
+Local config values merge with global config:
+- Values in local config override global config
+- Empty values in local config do not override global values
+- This allows you to keep your token in global config while overriding account per project
+
+**Example:** Global config has your token, local config specifies which account to use for this project:
+
+```yaml
+# ~/.config/fizzy/config.yaml (global)
+token: fizzy_abc123...
+
+# /path/to/project/.fizzy.yaml (local)
+account: 123456789
+```
+
+### Priority Order
+
+Configuration priority (highest to lowest):
+1. Command-line flags (`--token`, `--account`, `--api-url`)
+2. Environment variables (`FIZZY_TOKEN`, `FIZZY_ACCOUNT`, `FIZZY_API_URL`, `FIZZY_BOARD`)
+3. Local project config (`.fizzy.yaml` in current or parent directories)
+4. Global config (`~/.config/fizzy/config.yaml` or `~/.fizzy/config.yaml`)
+5. Defaults
 
 ## Pagination
 
@@ -347,6 +381,39 @@ List commands return paginated results. Use `--page` to fetch specific pages or 
 ```bash
 fizzy card list --page 2
 fizzy card list --all
+```
+
+## Development
+
+### Building
+
+```bash
+go build -o bin/fizzy ./cmd/fizzy
+```
+
+### Running Tests
+
+**Unit tests** (no API credentials required):
+
+```bash
+make test-unit
+```
+
+**E2E tests** (requires live API credentials):
+
+```bash
+# Set required environment variables
+export FIZZY_TEST_TOKEN=your-api-token
+export FIZZY_TEST_ACCOUNT=your-account-slug
+
+# Build and run e2e tests
+make test-e2e
+```
+
+Run a specific e2e test:
+
+```bash
+make test-run NAME=TestBoardCRUD
 ```
 
 ## License

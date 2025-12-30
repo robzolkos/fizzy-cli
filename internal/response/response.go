@@ -1,0 +1,162 @@
+// Package response handles JSON response formatting for the Fizzy CLI.
+package response
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/robzolkos/fizzy-cli/internal/errors"
+)
+
+// Response represents the JSON response envelope.
+type Response struct {
+	Success    bool                   `json:"success"`
+	Data       interface{}            `json:"data,omitempty"`
+	Error      *ErrorDetail           `json:"error,omitempty"`
+	Pagination *Pagination            `json:"pagination,omitempty"`
+	Location   string                 `json:"location,omitempty"`
+	Meta       map[string]interface{} `json:"meta,omitempty"`
+}
+
+// ErrorDetail represents an error in the response.
+type ErrorDetail struct {
+	Code    string      `json:"code"`
+	Message string      `json:"message"`
+	Status  int         `json:"status,omitempty"`
+	Details interface{} `json:"details,omitempty"`
+}
+
+// Pagination represents pagination info in the response.
+type Pagination struct {
+	HasNext bool   `json:"has_next"`
+	NextURL string `json:"next_url,omitempty"`
+}
+
+// Success creates a successful response with data.
+func Success(data interface{}) *Response {
+	return &Response{
+		Success: true,
+		Data:    data,
+		Meta:    createMeta(),
+	}
+}
+
+// SuccessWithLocation creates a successful response with location.
+func SuccessWithLocation(data interface{}, location string) *Response {
+	return &Response{
+		Success:  true,
+		Data:     data,
+		Location: location,
+		Meta:     createMeta(),
+	}
+}
+
+// SuccessWithPagination creates a successful response with pagination.
+func SuccessWithPagination(data interface{}, hasNext bool, nextURL string) *Response {
+	resp := &Response{
+		Success: true,
+		Data:    data,
+		Meta:    createMeta(),
+	}
+	if hasNext || nextURL != "" {
+		resp.Pagination = &Pagination{
+			HasNext: hasNext,
+			NextURL: nextURL,
+		}
+	}
+	return resp
+}
+
+// Error creates an error response from a CLIError.
+func Error(err *errors.CLIError) *Response {
+	resp := &Response{
+		Success: false,
+		Error: &ErrorDetail{
+			Code:    err.Code,
+			Message: err.Message,
+		},
+		Meta: createMeta(),
+	}
+	if err.Status != 0 {
+		resp.Error.Status = err.Status
+	}
+	return resp
+}
+
+// ErrorFromError creates an error response from a generic error.
+func ErrorFromError(err error) *Response {
+	if cliErr, ok := err.(*errors.CLIError); ok {
+		return Error(cliErr)
+	}
+	return Error(errors.NewError(err.Error()))
+}
+
+func createMeta() map[string]interface{} {
+	return map[string]interface{}{
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+// Print outputs the response as JSON to stdout.
+func (r *Response) Print() {
+	output, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marshaling response: %v\n", err)
+		return
+	}
+	fmt.Println(string(output))
+}
+
+// PrintAndExit prints the response and exits with appropriate code.
+func (r *Response) PrintAndExit() {
+	r.Print()
+	if r.Success {
+		os.Exit(errors.ExitSuccess)
+	}
+	// Try to get exit code from the error
+	if r.Error != nil {
+		switch r.Error.Code {
+		case "AUTH_ERROR":
+			os.Exit(errors.ExitAuthFailure)
+		case "FORBIDDEN":
+			os.Exit(errors.ExitForbidden)
+		case "NOT_FOUND":
+			os.Exit(errors.ExitNotFound)
+		case "VALIDATION_ERROR":
+			os.Exit(errors.ExitValidation)
+		case "NETWORK_ERROR":
+			os.Exit(errors.ExitNetwork)
+		case "INVALID_ARGS":
+			os.Exit(errors.ExitInvalidArgs)
+		default:
+			os.Exit(errors.ExitError)
+		}
+	}
+	os.Exit(errors.ExitError)
+}
+
+// ExitCode returns the appropriate exit code for this response.
+func (r *Response) ExitCode() int {
+	if r.Success {
+		return errors.ExitSuccess
+	}
+	if r.Error != nil {
+		switch r.Error.Code {
+		case "AUTH_ERROR":
+			return errors.ExitAuthFailure
+		case "FORBIDDEN":
+			return errors.ExitForbidden
+		case "NOT_FOUND":
+			return errors.ExitNotFound
+		case "VALIDATION_ERROR":
+			return errors.ExitValidation
+		case "NETWORK_ERROR":
+			return errors.ExitNetwork
+		case "INVALID_ARGS":
+			return errors.ExitInvalidArgs
+		}
+	}
+	return errors.ExitError
+}

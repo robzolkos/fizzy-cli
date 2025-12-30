@@ -1,0 +1,327 @@
+// Package harness provides a test harness for end-to-end testing of the Fizzy CLI by
+// executing the CLI binary and capturing stdout, stderr, and exit codes.
+package harness
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Harness provides methods for executing CLI commands and capturing results.
+type Harness struct {
+	// BinaryPath is the path to the CLI binary (Ruby or Go)
+	BinaryPath string
+
+	// Token is the API access token
+	Token string
+
+	// Account is the account slug
+	Account string
+
+	// APIURL is the API base URL
+	APIURL string
+
+	// Cleanup tracks created resources for cleanup
+	Cleanup *CleanupTracker
+
+	// t is the testing context
+	t *testing.T
+}
+
+// Response represents the JSON response envelope from the CLI.
+type Response struct {
+	Success    bool                   `json:"success"`
+	Data       interface{}            `json:"data,omitempty"`
+	Error      *ErrorDetail           `json:"error,omitempty"`
+	Pagination *Pagination            `json:"pagination,omitempty"`
+	Location   string                 `json:"location,omitempty"`
+	Meta       map[string]interface{} `json:"meta,omitempty"`
+}
+
+// ErrorDetail represents an error in the response.
+type ErrorDetail struct {
+	Code    string      `json:"code"`
+	Message string      `json:"message"`
+	Status  int         `json:"status,omitempty"`
+	Details interface{} `json:"details,omitempty"`
+}
+
+// Pagination represents pagination info in the response.
+type Pagination struct {
+	HasNext bool   `json:"has_next"`
+	NextURL string `json:"next_url,omitempty"`
+}
+
+// Result contains the output from a CLI command execution.
+type Result struct {
+	// Stdout is the standard output
+	Stdout string
+
+	// Stderr is the standard error output
+	Stderr string
+
+	// ExitCode is the process exit code
+	ExitCode int
+
+	// Response is the parsed JSON response (nil if parsing failed)
+	Response *Response
+
+	// ParseError is set if JSON parsing failed
+	ParseError error
+}
+
+// Config holds test harness configuration from environment variables.
+type Config struct {
+	BinaryPath string
+	Token      string
+	Account    string
+	APIURL     string
+}
+
+// Exit codes used by the CLI.
+const (
+	ExitSuccess     = 0
+	ExitError       = 1
+	ExitInvalidArgs = 2
+	ExitAuthFailure = 3
+	ExitForbidden   = 4
+	ExitNotFound    = 5
+	ExitValidation  = 6
+	ExitNetwork     = 7
+)
+
+// LoadConfig loads test configuration from environment variables.
+func LoadConfig() *Config {
+	repoRoot, _ := RepoRoot()
+	defaultBinary := "./bin/fizzy"
+	if repoRoot != "" {
+		defaultBinary = filepath.Join(repoRoot, "bin", "fizzy")
+	}
+
+	return &Config{
+		BinaryPath: getEnvOrDefault("FIZZY_TEST_BINARY", defaultBinary),
+		Token:      os.Getenv("FIZZY_TEST_TOKEN"),
+		Account:    os.Getenv("FIZZY_TEST_ACCOUNT"),
+		APIURL:     getEnvOrDefault("FIZZY_TEST_API_URL", "https://app.fizzy.do"),
+	}
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return defaultValue
+}
+
+// New creates a new test harness with configuration from environment variables.
+func New(t *testing.T) *Harness {
+	t.Helper()
+
+	cfg := LoadConfig()
+
+	if cfg.Token == "" {
+		t.Skip("FIZZY_TEST_TOKEN not set, skipping integration tests")
+	}
+	if cfg.Account == "" {
+		t.Skip("FIZZY_TEST_ACCOUNT not set, skipping integration tests")
+	}
+
+	return &Harness{
+		BinaryPath: cfg.BinaryPath,
+		Token:      cfg.Token,
+		Account:    cfg.Account,
+		APIURL:     cfg.APIURL,
+		Cleanup:    NewCleanupTracker(),
+		t:          t,
+	}
+}
+
+// NewWithConfig creates a new test harness with explicit configuration.
+func NewWithConfig(t *testing.T, cfg *Config) *Harness {
+	t.Helper()
+
+	return &Harness{
+		BinaryPath: cfg.BinaryPath,
+		Token:      cfg.Token,
+		Account:    cfg.Account,
+		APIURL:     cfg.APIURL,
+		Cleanup:    NewCleanupTracker(),
+		t:          t,
+	}
+}
+
+// Run executes a CLI command and returns the result.
+func (h *Harness) Run(args ...string) *Result {
+	h.t.Helper()
+	return h.RunWithEnv(nil, args...)
+}
+
+// RunWithEnv executes a CLI command with additional environment variables.
+func (h *Harness) RunWithEnv(env map[string]string, args ...string) *Result {
+	h.t.Helper()
+
+	// Build full argument list with global options
+	fullArgs := h.buildArgs(args...)
+
+	// Execute the command
+	result := Execute(h.BinaryPath, fullArgs, env)
+
+	// Try to parse JSON response
+	if result.Stdout != "" {
+		var resp Response
+		if err := json.Unmarshal([]byte(result.Stdout), &resp); err != nil {
+			result.ParseError = err
+		} else {
+			result.Response = &resp
+		}
+	}
+
+	return result
+}
+
+// RunWithoutAuth executes a CLI command without authentication.
+func (h *Harness) RunWithoutAuth(args ...string) *Result {
+	h.t.Helper()
+
+	// Execute without global options (no token/account)
+	result := Execute(h.BinaryPath, args, nil)
+
+	// Try to parse JSON response
+	if result.Stdout != "" {
+		var resp Response
+		if err := json.Unmarshal([]byte(result.Stdout), &resp); err != nil {
+			result.ParseError = err
+		} else {
+			result.Response = &resp
+		}
+	}
+
+	return result
+}
+
+// buildArgs builds the full argument list with global options.
+// Thor requires global options to come AFTER the subcommand.
+func (h *Harness) buildArgs(args ...string) []string {
+	globalArgs := []string{
+		"--token", h.Token,
+		"--account", h.Account,
+		"--api-url", h.APIURL,
+	}
+	// Append global args after the command args
+	return append(args, globalArgs...)
+}
+
+// GetDataString extracts a string value from the response data.
+func (r *Result) GetDataString(key string) string {
+	if r.Response == nil || r.Response.Data == nil {
+		return ""
+	}
+	data, ok := r.Response.Data.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	v, ok := data[key].(string)
+	if !ok {
+		return ""
+	}
+	return v
+}
+
+// GetDataInt extracts an integer value from the response data.
+func (r *Result) GetDataInt(key string) int {
+	if r.Response == nil || r.Response.Data == nil {
+		return 0
+	}
+	data, ok := r.Response.Data.(map[string]interface{})
+	if !ok {
+		return 0
+	}
+	// JSON numbers are float64
+	v, ok := data[key].(float64)
+	if !ok {
+		return 0
+	}
+	return int(v)
+}
+
+// GetDataBool extracts a boolean value from the response data.
+func (r *Result) GetDataBool(key string) bool {
+	if r.Response == nil || r.Response.Data == nil {
+		return false
+	}
+	data, ok := r.Response.Data.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	v, ok := data[key].(bool)
+	if !ok {
+		return false
+	}
+	return v
+}
+
+// GetDataArray extracts an array from the response data.
+func (r *Result) GetDataArray() []interface{} {
+	if r.Response == nil || r.Response.Data == nil {
+		return nil
+	}
+	arr, ok := r.Response.Data.([]interface{})
+	if !ok {
+		return nil
+	}
+	return arr
+}
+
+// GetDataMap extracts the data as a map.
+func (r *Result) GetDataMap() map[string]interface{} {
+	if r.Response == nil || r.Response.Data == nil {
+		return nil
+	}
+	data, ok := r.Response.Data.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return data
+}
+
+// GetLocation returns the location URL from the response.
+func (r *Result) GetLocation() string {
+	if r.Response == nil {
+		return ""
+	}
+	return r.Response.Location
+}
+
+// GetIDFromLocation extracts the resource ID from the location URL.
+// Location format: /account/resource/ID.json
+func (r *Result) GetIDFromLocation() string {
+	loc := r.GetLocation()
+	if loc == "" {
+		return ""
+	}
+	// Remove .json suffix if present
+	loc = strings.TrimSuffix(loc, ".json")
+	// Get the last path segment
+	parts := strings.Split(loc, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return ""
+}
+
+// GetNumberFromLocation extracts a numeric ID from the location URL.
+// Used for cards which use numeric IDs.
+func (r *Result) GetNumberFromLocation() int {
+	idStr := r.GetIDFromLocation()
+	if idStr == "" {
+		return 0
+	}
+	// Try to parse as int
+	var num int
+	fmt.Sscanf(idStr, "%d", &num)
+	return num
+}
