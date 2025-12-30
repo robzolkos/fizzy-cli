@@ -2,16 +2,21 @@
 
 A command-line interface for the [Fizzy](https://fizzy.do) API. See the official API docs at https://github.com/basecamp/fizzy/blob/main/docs/API.md.
 
-https://github.com/user-attachments/assets/86b91eae-7e8a-418c-a99e-3493ed7290cc
-
 ## Installation
 
-Download the latest release from [GitHub Releases](https://github.com/robzolkos/fizzy-cli/releases) and add it to your PATH.
+**Arch Linux (AUR)**
+```bash
+yay -S fizzy-cli
+```
 
 **With Go**
 ```bash
 go install github.com/robzolkos/fizzy-cli/cmd/fizzy@latest
 ```
+
+**From binary**
+
+Download the latest release from [GitHub Releases](https://github.com/robzolkos/fizzy-cli/releases) and add it to your PATH.
 
 **From source**
 ```bash
@@ -20,6 +25,58 @@ cd fizzy-cli
 go build -o fizzy ./cmd/fizzy
 ./fizzy --help
 ```
+
+## Configuration
+
+The CLI looks for configuration in multiple locations:
+
+### Global Configuration
+
+Global config is stored in one of these locations:
+- `~/.config/fizzy/config.yaml` (preferred)
+- `~/.fizzy/config.yaml`
+
+```yaml
+token: fizzy_abc123...
+account: 897362094
+api_url: https://app.fizzy.do
+board: 123456
+```
+
+### Local Project Configuration
+
+You can also create a `.fizzy.yaml` file in your project directory. The CLI walks up the directory tree to find it, so you can run commands from any subdirectory.
+
+```yaml
+# .fizzy.yaml - project-specific settings
+account: 123456789
+api_url: https://self-hosted.example.com
+board: 123456
+```
+
+Local config values merge with global config:
+- Values in local config override global config
+- Empty values in local config do not override global values
+- This allows you to keep your token in global config while overriding account per project
+
+**Example:** Global config has your token, local config specifies which account to use for this project:
+
+```yaml
+# ~/.config/fizzy/config.yaml (global)
+token: fizzy_abc123...
+
+# /path/to/project/.fizzy.yaml (local)
+account: 123456789
+```
+
+### Priority Order
+
+Configuration priority (highest to lowest):
+1. Command-line flags (`--token`, `--account`, `--api-url`)
+2. Environment variables (`FIZZY_TOKEN`, `FIZZY_ACCOUNT`, `FIZZY_API_URL`, `FIZZY_BOARD`)
+3. Local project config (`.fizzy.yaml` in current or parent directories)
+4. Global config (`~/.config/fizzy/config.yaml` or `~/.fizzy/config.yaml`)
+5. Defaults
 
 ## Quick Start
 
@@ -339,58 +396,6 @@ Errors return a non-zero exit code and structured error info:
 | 5 | Not found |
 | 6 | Validation error |
 | 7 | Network error |
-
-## Configuration
-
-The CLI looks for configuration in multiple locations:
-
-### Global Configuration
-
-Global config is stored in one of these locations:
-- `~/.config/fizzy/config.yaml` (preferred)
-- `~/.fizzy/config.yaml`
-
-```yaml
-token: fizzy_abc123...
-account: 897362094
-api_url: https://app.fizzy.do
-board: 123456
-```
-
-### Local Project Configuration
-
-You can also create a `.fizzy.yaml` file in your project directory. The CLI walks up the directory tree to find it, so you can run commands from any subdirectory.
-
-```yaml
-# .fizzy.yaml - project-specific settings
-account: 123456789
-api_url: https://self-hosted.example.com
-board: 123456
-```
-
-Local config values merge with global config:
-- Values in local config override global config
-- Empty values in local config do not override global values
-- This allows you to keep your token in global config while overriding account per project
-
-**Example:** Global config has your token, local config specifies which account to use for this project:
-
-```yaml
-# ~/.config/fizzy/config.yaml (global)
-token: fizzy_abc123...
-
-# /path/to/project/.fizzy.yaml (local)
-account: 123456789
-```
-
-### Priority Order
-
-Configuration priority (highest to lowest):
-1. Command-line flags (`--token`, `--account`, `--api-url`)
-2. Environment variables (`FIZZY_TOKEN`, `FIZZY_ACCOUNT`, `FIZZY_API_URL`, `FIZZY_BOARD`)
-3. Local project config (`.fizzy.yaml` in current or parent directories)
-4. Global config (`~/.config/fizzy/config.yaml` or `~/.fizzy/config.yaml`)
-5. Defaults
 
 ## Pagination
 
