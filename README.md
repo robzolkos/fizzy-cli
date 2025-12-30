@@ -329,6 +329,26 @@ fizzy card create --board BOARD_ID --title "Card" \
 fizzy identity show
 ```
 
+### Skill Installation
+
+Install the Fizzy skill file for use with AI coding assistants like Claude Code or OpenCode.
+
+```bash
+fizzy skill
+```
+
+This interactive command lets you choose where to install the SKILL.md file:
+
+| Location | Path |
+|----------|------|
+| Claude Code (Global) | `~/.claude/skills/fizzy/SKILL.md` |
+| Claude Code (Project) | `.claude/skills/fizzy/SKILL.md` |
+| OpenCode (Global) | `~/.config/opencode/skill/fizzy/SKILL.md` |
+| OpenCode (Project) | `.opencode/skill/fizzy/SKILL.md` |
+| Other | Custom path of your choice |
+
+The skill file enables AI assistants to understand and use Fizzy CLI commands effectively.
+
 ## Output Format
 
 Command results output JSON. (`--help` and `--version` output plain text.)
