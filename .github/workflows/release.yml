@@ -47,13 +47,17 @@ jobs:
           go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o "dist/fizzy-${GOOS}-${GOARCH}${EXT}" ./cmd/fizzy
 
       - name: Checksums
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          EXT: ${{ matrix.ext }}
         run: |
           cd dist
-          sha256sum * > SHA256SUMS.txt
+          sha256sum "fizzy-${GOOS}-${GOARCH}${EXT}" > "SHA256SUMS-${GOOS}-${GOARCH}.txt"
 
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*
-
+            dist/fizzy-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+            dist/SHA256SUMS-${{ matrix.goos }}-${{ matrix.goarch }}.txt
