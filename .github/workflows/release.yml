@@ -89,6 +89,7 @@ jobs:
           makedepends=('go')
           source=("$pkgname-$pkgver.tar.gz::https://github.com/robzolkos/fizzy-cli/archive/v$pkgver.tar.gz")
           sha256sums=('SHA256_PLACEHOLDER')
+          options=('!debug')
 
           build() {
               cd "$pkgname-$pkgver"
