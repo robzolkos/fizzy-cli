@@ -14,7 +14,7 @@ func TestColumnList(t *testing.T) {
 			StatusCode: 200,
 			Data: []interface{}{
 				map[string]interface{}{"id": "1", "name": "To Do"},
-				map[string]interface{}{"id": "2", "name": "Done"},
+				map[string]interface{}{"id": "2", "name": "In Progress"},
 			},
 		}
 
@@ -33,6 +33,27 @@ func TestColumnList(t *testing.T) {
 		}
 		if mock.GetCalls[0].Path != "/boards/123/columns.json" {
 			t.Errorf("expected path '/boards/123/columns.json', got '%s'", mock.GetCalls[0].Path)
+		}
+
+		arr, ok := result.Response.Data.([]interface{})
+		if !ok {
+			t.Fatalf("expected array response data, got %T", result.Response.Data)
+		}
+		if len(arr) != 5 {
+			t.Fatalf("expected 5 columns (3 pseudo + 2 real), got %d", len(arr))
+		}
+
+		first := arr[0].(map[string]interface{})
+		if first["id"] != "not-yet" || first["name"] != "Not Yet" {
+			t.Errorf("expected first pseudo column Not Yet, got %+v", first)
+		}
+		second := arr[1].(map[string]interface{})
+		if second["id"] != "maybe" || second["name"] != "Maybe?" {
+			t.Errorf("expected second pseudo column Maybe?, got %+v", second)
+		}
+		last := arr[len(arr)-1].(map[string]interface{})
+		if last["id"] != "done" || last["name"] != "Done" {
+			t.Errorf("expected last pseudo column Done, got %+v", last)
 		}
 	})
 
@@ -120,6 +141,30 @@ func TestColumnShow(t *testing.T) {
 
 		if result.ExitCode != errors.ExitInvalidArgs {
 			t.Errorf("expected exit code %d, got %d", errors.ExitInvalidArgs, result.ExitCode)
+		}
+	})
+
+	t.Run("shows pseudo columns without board", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		columnShowBoard = ""
+		RunTestCommand(func() {
+			columnShowCmd.Run(columnShowCmd, []string{"done"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+
+		data, ok := result.Response.Data.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected map response data, got %T", result.Response.Data)
+		}
+		if data["id"] != "done" || data["name"] != "Done" {
+			t.Errorf("expected pseudo Done column, got %+v", data)
 		}
 	})
 }

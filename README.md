@@ -114,6 +114,9 @@ fizzy board delete BOARD_ID
 # List cards (with optional filters)
 fizzy card list
 fizzy card list --board BOARD_ID
+fizzy card list --column COLUMN_ID
+fizzy card list --column maybe
+fizzy card list --column done
 fizzy card list --tag TAG_ID
 fizzy card list --status published
 fizzy card list --assignee USER_ID
@@ -153,6 +156,11 @@ fizzy card postpone 42
 # Move into a column
 fizzy card column 42 --column COLUMN_ID
 
+# Move into UI lanes (pseudo columns)
+fizzy card column 42 --column not-yet
+fizzy card column 42 --column maybe
+fizzy card column 42 --column done
+
 # Send back to triage
 fizzy card untriage 42
 
@@ -176,6 +184,14 @@ fizzy column create --board BOARD_ID --name "In Progress"
 fizzy column update COLUMN_ID --board BOARD_ID --name "Done"
 fizzy column delete COLUMN_ID --board BOARD_ID
 ```
+
+`fizzy column list` also includes the UI's built-in lanes as pseudo columns in this order:
+- `not-yet` (Not Yet)
+- `maybe` (Maybe?)
+- your real columns…
+- `done` (Done)
+
+When filtering cards by `--column not-yet` (triage) or a real column ID, the CLI filters client-side; use `--all` to fetch all pages before filtering.
 
 ### Comments
 

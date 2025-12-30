@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/robzolkos/fizzy-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -16,6 +17,7 @@ var cardCmd = &cobra.Command{
 
 // Card list flags
 var cardListBoard string
+var cardListColumn string
 var cardListTag string
 var cardListStatus string
 var cardListAssignee string
@@ -32,6 +34,7 @@ var cardListCmd = &cobra.Command{
 		}
 
 		boardID := defaultBoard(cardListBoard)
+		columnFilter := strings.TrimSpace(cardListColumn)
 
 		client := getClient()
 		path := "/cards.json"
@@ -40,6 +43,26 @@ var cardListCmd = &cobra.Command{
 		if boardID != "" {
 			params = append(params, "board_ids[]="+boardID)
 		}
+
+		clientSideColumnFilter := ""
+		clientSideTriage := false
+		if columnFilter != "" {
+			if pseudo, ok := parsePseudoColumnID(columnFilter); ok {
+				switch pseudo.Kind {
+				case "not_now":
+					params = append(params, "indexed_by=not_now")
+				case "closed":
+					params = append(params, "indexed_by=closed")
+				case "triage":
+					clientSideTriage = true
+				default:
+					clientSideColumnFilter = columnFilter
+				}
+			} else {
+				clientSideColumnFilter = columnFilter
+			}
+		}
+
 		if cardListTag != "" {
 			params = append(params, "tag_ids[]="+cardListTag)
 		}
@@ -56,9 +79,53 @@ var cardListCmd = &cobra.Command{
 			path += "?" + strings.Join(params, "&")
 		}
 
+		if (clientSideTriage || clientSideColumnFilter != "") && !cardListAll && cardListPage == 0 {
+			exitWithError(errors.NewInvalidArgsError("Filtering by column requires --all (or --page) because it is applied client-side"))
+		}
+
 		resp, err := client.GetWithPagination(path, cardListAll)
 		if err != nil {
 			exitWithError(err)
+		}
+
+		if clientSideTriage || clientSideColumnFilter != "" {
+			arr, ok := resp.Data.([]interface{})
+			if !ok {
+				exitWithError(errors.NewError("Unexpected cards list response"))
+			}
+
+			filtered := make([]interface{}, 0, len(arr))
+			for _, item := range arr {
+				card, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				columnID := ""
+				if v, ok := card["column_id"].(string); ok {
+					columnID = v
+				}
+				if columnID == "" {
+					if col, ok := card["column"].(map[string]interface{}); ok {
+						if id, ok := col["id"].(string); ok {
+							columnID = id
+						}
+					}
+				}
+
+				if clientSideTriage {
+					if columnID == "" {
+						filtered = append(filtered, item)
+					}
+					continue
+				}
+
+				if clientSideColumnFilter != "" && columnID == clientSideColumnFilter {
+					filtered = append(filtered, item)
+				}
+			}
+
+			resp.Data = filtered
 		}
 
 		hasNext := resp.LinkNext != ""
@@ -314,11 +381,49 @@ var cardColumnCmd = &cobra.Command{
 			exitWithError(newRequiredFlagError("column"))
 		}
 
+		client := getClient()
+		if pseudo, ok := parsePseudoColumnID(cardColumnColumn); ok {
+			switch pseudo.Kind {
+			case "triage":
+				resp, err := client.Delete("/cards/" + args[0] + "/triage.json")
+				if err != nil {
+					exitWithError(err)
+				}
+				if resp != nil && resp.Data != nil {
+					printSuccess(resp.Data)
+				} else {
+					printSuccess(map[string]interface{}{})
+				}
+				return
+			case "not_now":
+				resp, err := client.Post("/cards/"+args[0]+"/not_now.json", nil)
+				if err != nil {
+					exitWithError(err)
+				}
+				if resp != nil && resp.Data != nil {
+					printSuccess(resp.Data)
+				} else {
+					printSuccess(map[string]interface{}{})
+				}
+				return
+			case "closed":
+				resp, err := client.Post("/cards/"+args[0]+"/closure.json", nil)
+				if err != nil {
+					exitWithError(err)
+				}
+				if resp != nil && resp.Data != nil {
+					printSuccess(resp.Data)
+				} else {
+					printSuccess(map[string]interface{}{})
+				}
+				return
+			}
+		}
+
 		body := map[string]interface{}{
 			"column_id": cardColumnColumn,
 		}
 
-		client := getClient()
 		resp, err := client.Post("/cards/"+args[0]+"/triage.json", body)
 		if err != nil {
 			exitWithError(err)
@@ -481,6 +586,7 @@ func init() {
 
 	// List
 	cardListCmd.Flags().StringVar(&cardListBoard, "board", "", "Filter by board ID")
+	cardListCmd.Flags().StringVar(&cardListColumn, "column", "", "Filter by column ID or pseudo column (not-yet, maybe, done)")
 	cardListCmd.Flags().StringVar(&cardListTag, "tag", "", "Filter by tag ID")
 	cardListCmd.Flags().StringVar(&cardListStatus, "status", "", "Filter by status")
 	cardListCmd.Flags().StringVar(&cardListAssignee, "assignee", "", "Filter by assignee ID")

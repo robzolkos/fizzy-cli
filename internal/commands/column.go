@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/robzolkos/fizzy-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,18 @@ var columnListCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		data, ok := resp.Data.([]interface{})
+		if !ok {
+			printSuccess(resp.Data)
+			return
+		}
+
+		cols := make([]interface{}, 0, len(data)+3)
+		cols = append(cols, pseudoColumnObject(pseudoColumnNotYet), pseudoColumnObject(pseudoColumnMaybe))
+		cols = append(cols, data...)
+		cols = append(cols, pseudoColumnObject(pseudoColumnDone))
+
+		printSuccess(cols)
 	},
 }
 
@@ -48,6 +60,11 @@ var columnShowCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := requireAuthAndAccount(); err != nil {
 			exitWithError(err)
+		}
+
+		if pseudo, ok := parsePseudoColumnID(args[0]); ok {
+			printSuccess(pseudoColumnObject(pseudo))
+			return
 		}
 
 		boardID, err := requireBoard(columnShowBoard)
@@ -130,6 +147,10 @@ var columnUpdateCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		if _, ok := parsePseudoColumnID(args[0]); ok {
+			exitWithError(errors.NewInvalidArgsError("cannot update pseudo columns (Not Yet, Maybe?, Done)"))
+		}
+
 		boardID, err := requireBoard(columnUpdateBoard)
 		if err != nil {
 			exitWithError(err)
@@ -164,6 +185,10 @@ var columnDeleteCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := requireAuthAndAccount(); err != nil {
 			exitWithError(err)
+		}
+
+		if _, ok := parsePseudoColumnID(args[0]); ok {
+			exitWithError(errors.NewInvalidArgsError("cannot delete pseudo columns (Not Yet, Maybe?, Done)"))
 		}
 
 		boardID, err := requireBoard(columnDeleteBoard)
