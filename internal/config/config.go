@@ -240,3 +240,25 @@ func Exists() bool {
 func LocalConfigPath() string {
 	return findLocalConfig()
 }
+
+// SaveLocal saves the configuration to a local .fizzy.yaml file in the current directory.
+func (c *Config) SaveLocal() error {
+	var dir string
+	if testWorkingDir != "" {
+		dir = testWorkingDir
+	} else {
+		var err error
+		dir, err = os.Getwd()
+		if err != nil {
+			return err
+		}
+	}
+
+	path := filepath.Join(dir, LocalConfigFile)
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, data, 0600)
+}

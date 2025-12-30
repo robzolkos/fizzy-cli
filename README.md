@@ -103,50 +103,17 @@ Configuration priority (highest to lowest):
 
 ## Quick Start
 
-1. Get your API token from your [Fizzy profile](https://app.fizzy.do/my/profile) under "Personal access tokens"
+1. Get your API token from My Profile → Personal Access Tokens (see [instructions](https://github.com/basecamp/fizzy/blob/main/docs/API.md#personal-access-tokens))
 
-2. Configure the CLI:
-
-```bash
-fizzy auth login YOUR_TOKEN
-```
-
-3. List your accounts:
+2. Run the interactive setup wizard:
 
 ```bash
-fizzy identity show
+fizzy setup
 ```
 
-4. Set your default account (use the numeric slug without the leading slash):
+The wizard will guide you through configuring your token, selecting your account, and optionally setting a default board.
 
-```bash
-# From identity show: "slug": "/897362094" → use 897362094
-export FIZZY_ACCOUNT=897362094
-```
-
-5. (Optional) Set your default board:
-
-```bash
-export FIZZY_BOARD=BOARD_ID
-```
-
-**Self-hosted domains:**
-If you're using a self-hosted domain instead of the default `https://app.fizzy.do`, specify it using one of these methods:
-
-**Option 1: Per-command flag**
-```bash
-fizzy identity show --api-url=https://your_domain
-```
-
-**Option 2: Configuration file**
-Add to your `~/.config/fizzy/config.yaml`:
-
-```yaml
-token: your_token
-account: your_account_id
-api_url: https://your_domain
-board: your_default_board_id
-```
+That's it! Try `fizzy board list` to verify everything is working.
 
 ## Usage
 
