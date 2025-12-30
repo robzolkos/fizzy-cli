@@ -9,6 +9,11 @@ A command-line interface for the [Fizzy](https://fizzy.do) API. See the official
 yay -S fizzy-cli
 ```
 
+**macOS (Homebrew)**
+```bash
+brew install robzolkos/fizzy-cli/fizzy-cli
+```
+
 **With Go**
 ```bash
 go install github.com/robzolkos/fizzy-cli/cmd/fizzy@latest

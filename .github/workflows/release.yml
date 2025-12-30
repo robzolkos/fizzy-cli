@@ -124,3 +124,66 @@ jobs:
           commit_email: ${{ secrets.AUR_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           commit_message: "Update to ${{ github.ref_name }}"
+
+  homebrew-publish:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release'
+    steps:
+      - name: Update Homebrew Formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+
+          # Download SHA256 files
+          curl -sL "https://github.com/robzolkos/fizzy-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-amd64.txt" -o sha256-amd64.txt
+          curl -sL "https://github.com/robzolkos/fizzy-cli/releases/download/v${VERSION}/SHA256SUMS-darwin-arm64.txt" -o sha256-arm64.txt
+
+          SHA256_AMD64=$(cut -d' ' -f1 sha256-amd64.txt)
+          SHA256_ARM64=$(cut -d' ' -f1 sha256-arm64.txt)
+
+          # Generate formula
+          cat > fizzy-cli.rb << 'FORMULA'
+          class FizzyCli < Formula
+            desc "CLI for managing Fizzy boards, cards, and tasks"
+            homepage "https://github.com/robzolkos/fizzy-cli"
+            version "VERSION_PLACEHOLDER"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/robzolkos/fizzy-cli/releases/download/v#{version}/fizzy-darwin-arm64"
+                sha256 "SHA256_ARM64_PLACEHOLDER"
+              else
+                url "https://github.com/robzolkos/fizzy-cli/releases/download/v#{version}/fizzy-darwin-amd64"
+                sha256 "SHA256_AMD64_PLACEHOLDER"
+              end
+            end
+
+            def install
+              binary_name = Hardware::CPU.arm? ? "fizzy-darwin-arm64" : "fizzy-darwin-amd64"
+              bin.install binary_name => "fizzy"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/fizzy --version")
+            end
+          end
+          FORMULA
+
+          # Remove leading whitespace and replace placeholders
+          sed -i 's/^          //' fizzy-cli.rb
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/" fizzy-cli.rb
+          sed -i "s/SHA256_ARM64_PLACEHOLDER/${SHA256_ARM64}/" fizzy-cli.rb
+          sed -i "s/SHA256_AMD64_PLACEHOLDER/${SHA256_AMD64}/" fizzy-cli.rb
+
+          # Clone tap repo, update formula, push
+          git clone https://x-access-token:${GH_TOKEN}@github.com/robzolkos/homebrew-fizzy-cli.git
+          cd homebrew-fizzy-cli
+          cp ../fizzy-cli.rb Formula/fizzy-cli.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/fizzy-cli.rb
+          git commit -m "Update fizzy-cli to ${VERSION}"
+          git push
