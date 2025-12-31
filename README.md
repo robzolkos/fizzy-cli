@@ -311,16 +311,38 @@ fizzy notification read-all
 
 ### File Uploads
 
-Upload files for use in rich text fields (card descriptions, comment bodies).
+Upload files for use in rich text fields (card descriptions, comment bodies) or as card header images.
 
 ```bash
-# Upload a file and get a signed_id
+# Upload a file
 fizzy upload file /path/to/image.png
-
-# Use the signed_id in a card description
-fizzy card create --board BOARD_ID --title "Card" \
-  --description '<p>See image:</p><action-text-attachment sgid="SIGNED_ID"></action-text-attachment>'
+# Returns: { "signed_id": "...", "attachable_sgid": "..." }
 ```
+
+The upload returns two IDs for different purposes:
+
+| ID | Use Case |
+|----|----------|
+| `signed_id` | Card header images (`--image` flag) |
+| `attachable_sgid` | Inline images in rich text (`<action-text-attachment>`) |
+
+**Header image:**
+```bash
+SIGNED_ID=$(fizzy upload file header.png | jq -r '.data.signed_id')
+fizzy card create --board BOARD_ID --title "Card" --image "$SIGNED_ID"
+```
+
+**Inline image in description:**
+```bash
+SGID=$(fizzy upload file image.png | jq -r '.data.attachable_sgid')
+cat > description.html << EOF
+<p>See image:</p>
+<action-text-attachment sgid="$SGID"></action-text-attachment>
+EOF
+fizzy card create --board BOARD_ID --title "Card" --description_file description.html
+```
+
+> **Note:** Each `attachable_sgid` can only be used once. Upload the file again if you need to attach it to multiple cards.
 
 ### Identity
 
