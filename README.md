@@ -184,6 +184,7 @@ fizzy card create --board BOARD_ID --title "Old card" --created-at "2020-01-15T1
 
 # Update a card
 fizzy card update 42 --title "Updated title"
+fizzy card update 42 --image SIGNED_ID
 fizzy card update 42 --created-at "2019-01-01T00:00:00Z"
 
 # Delete a card
