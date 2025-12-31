@@ -249,6 +249,7 @@ var cardCreateCmd = &cobra.Command{
 var cardUpdateTitle string
 var cardUpdateDescription string
 var cardUpdateDescriptionFile string
+var cardUpdateImage string
 var cardUpdateCreatedAt string
 
 var cardUpdateCmd = &cobra.Command{
@@ -274,6 +275,9 @@ var cardUpdateCmd = &cobra.Command{
 			cardParams["description"] = string(content)
 		} else if cardUpdateDescription != "" {
 			cardParams["description"] = cardUpdateDescription
+		}
+		if cardUpdateImage != "" {
+			cardParams["image"] = cardUpdateImage
 		}
 		if cardUpdateCreatedAt != "" {
 			cardParams["created_at"] = cardUpdateCreatedAt
@@ -636,6 +640,7 @@ func init() {
 	cardUpdateCmd.Flags().StringVar(&cardUpdateTitle, "title", "", "Card title")
 	cardUpdateCmd.Flags().StringVar(&cardUpdateDescription, "description", "", "Card description (HTML)")
 	cardUpdateCmd.Flags().StringVar(&cardUpdateDescriptionFile, "description_file", "", "Read description from file")
+	cardUpdateCmd.Flags().StringVar(&cardUpdateImage, "image", "", "Header image signed ID")
 	cardUpdateCmd.Flags().StringVar(&cardUpdateCreatedAt, "created-at", "", "Custom created_at timestamp")
 	cardCmd.AddCommand(cardUpdateCmd)
 
