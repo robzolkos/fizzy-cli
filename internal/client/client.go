@@ -298,6 +298,9 @@ func (c *Client) UploadFile(filePath string) (*APIResponse, error) {
 		return nil, errors.NewError("Missing signed_id in response")
 	}
 
+	// Get attachable_sgid for use in action-text-attachment
+	attachableSGID, _ := blobData["attachable_sgid"].(string)
+
 	// Step 2: Upload file to the direct upload URL
 	uploadReq, err := http.NewRequest("PUT", uploadURL, bytes.NewReader(fileContent))
 	if err != nil {
@@ -322,12 +325,17 @@ func (c *Client) UploadFile(filePath string) (*APIResponse, error) {
 		return nil, errors.NewError(fmt.Sprintf("Upload failed: %d %s", uploadResp.StatusCode, string(body)))
 	}
 
-	// Return the signed_id
+	// Return the signed_id and attachable_sgid
+	responseData := map[string]interface{}{
+		"signed_id": signedID,
+	}
+	if attachableSGID != "" {
+		responseData["attachable_sgid"] = attachableSGID
+	}
+
 	return &APIResponse{
 		StatusCode: 200,
-		Data: map[string]interface{}{
-			"signed_id": signedID,
-		},
+		Data:       responseData,
 	}, nil
 }
 
