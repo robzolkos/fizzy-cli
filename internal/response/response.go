@@ -2,6 +2,7 @@
 package response
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -101,12 +102,15 @@ func createMeta() map[string]interface{} {
 
 // Print outputs the response as JSON to stdout.
 func (r *Response) Print() {
-	output, err := json.MarshalIndent(r, "", "  ")
-	if err != nil {
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(r); err != nil {
 		fmt.Fprintf(os.Stderr, "Error marshaling response: %v\n", err)
 		return
 	}
-	fmt.Println(string(output))
+	fmt.Print(buf.String())
 }
 
 // PrintAndExit prints the response and exits with appropriate code.

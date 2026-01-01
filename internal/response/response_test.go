@@ -1,7 +1,10 @@
 package response
 
 import (
+	"bytes"
 	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/robzolkos/fizzy-cli/internal/errors"
@@ -293,4 +296,34 @@ func containsKey(jsonStr, key string) bool {
 	json.Unmarshal([]byte(jsonStr), &m)
 	_, ok := m[key]
 	return ok
+}
+
+func TestPrintDoesNotEscapeHTML(t *testing.T) {
+	// Capture stdout
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Create response with HTML content (like description_html or comment body.html)
+	htmlContent := "<p>Hello <strong>World</strong></p>"
+	resp := Success(map[string]string{"description_html": htmlContent})
+	resp.Print()
+
+	// Restore stdout and read captured output
+	w.Close()
+	os.Stdout = oldStdout
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	// Verify HTML is NOT escaped (the fix)
+	// Before the fix, < would become \u003c and > would become \u003e
+	if strings.Contains(output, `\u003c`) || strings.Contains(output, `\u003e`) {
+		t.Errorf("HTML should not be escaped in output, got: %s", output)
+	}
+
+	// Verify the actual HTML tags are present
+	if !strings.Contains(output, "<p>") || !strings.Contains(output, "<strong>") {
+		t.Errorf("expected HTML tags to be preserved, got: %s", output)
+	}
 }
