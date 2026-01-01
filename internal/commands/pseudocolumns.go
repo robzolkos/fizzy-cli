@@ -9,13 +9,15 @@ type pseudoColumn struct {
 }
 
 var (
-	pseudoColumnNotYet = pseudoColumn{ID: "not-yet", Name: "Not Yet", Kind: "triage"}
-	pseudoColumnMaybe  = pseudoColumn{ID: "maybe", Name: "Maybe?", Kind: "not_now"}
-	pseudoColumnDone   = pseudoColumn{ID: "done", Name: "Done", Kind: "closed"}
+	// "Not Now" contains postponed cards (indexed_by=not_now)
+	pseudoColumnNotNow = pseudoColumn{ID: "not-now", Name: "Not Now", Kind: "not_now"}
+	// "Maybe?" contains triage/backlog cards (null column_id)
+	pseudoColumnMaybe = pseudoColumn{ID: "maybe", Name: "Maybe?", Kind: "triage"}
+	pseudoColumnDone  = pseudoColumn{ID: "done", Name: "Done", Kind: "closed"}
 )
 
 func pseudoColumnsInBoardOrder() []pseudoColumn {
-	return []pseudoColumn{pseudoColumnNotYet, pseudoColumnMaybe, pseudoColumnDone}
+	return []pseudoColumn{pseudoColumnNotNow, pseudoColumnMaybe, pseudoColumnDone}
 }
 
 func pseudoColumnObject(c pseudoColumn) map[string]interface{} {
@@ -29,9 +31,9 @@ func pseudoColumnObject(c pseudoColumn) map[string]interface{} {
 
 func parsePseudoColumnID(id string) (pseudoColumn, bool) {
 	switch strings.ToLower(strings.TrimSpace(id)) {
-	case "not-yet", "not_yet", "notyet", "triage":
-		return pseudoColumnNotYet, true
-	case "maybe", "maybe?", "not-now", "not_now", "notnow":
+	case "not-now", "not_now", "notnow", "not-yet", "not_yet", "notyet":
+		return pseudoColumnNotNow, true
+	case "maybe", "maybe?", "triage":
 		return pseudoColumnMaybe, true
 	case "done", "closed", "close":
 		return pseudoColumnDone, true

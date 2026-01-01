@@ -205,7 +205,7 @@ fizzy card postpone 42
 fizzy card column 42 --column COLUMN_ID
 
 # Move into UI lanes (pseudo columns)
-fizzy card column 42 --column not-yet
+fizzy card column 42 --column not-now
 fizzy card column 42 --column maybe
 fizzy card column 42 --column done
 
@@ -234,12 +234,12 @@ fizzy column delete COLUMN_ID --board BOARD_ID
 ```
 
 `fizzy column list` also includes the UI's built-in lanes as pseudo columns in this order:
-- `not-yet` (Not Yet)
+- `not-now` (Not Now)
 - `maybe` (Maybe?)
 - your real columns…
 - `done` (Done)
 
-When filtering cards by `--column not-yet` (triage) or a real column ID, the CLI filters client-side; use `--all` to fetch all pages before filtering.
+When filtering cards by `--column maybe` (triage) or a real column ID, the CLI filters client-side; use `--all` to fetch all pages before filtering.
 
 ### Comments
 

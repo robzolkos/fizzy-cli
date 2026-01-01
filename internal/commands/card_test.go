@@ -69,7 +69,7 @@ func TestCardList(t *testing.T) {
 		}
 	})
 
-	t.Run("filters by pseudo column (maybe)", func(t *testing.T) {
+	t.Run("filters by pseudo column (not-now)", func(t *testing.T) {
 		mock := NewMockClient()
 		mock.GetWithPaginationResponse = &client.APIResponse{
 			StatusCode: 200,
@@ -81,7 +81,7 @@ func TestCardList(t *testing.T) {
 		cfg.Board = "123"
 		defer ResetTestMode()
 
-		cardListColumn = "maybe"
+		cardListColumn = "not-now"
 		RunTestCommand(func() {
 			cardListCmd.Run(cardListCmd, []string{})
 		})
@@ -102,7 +102,7 @@ func TestCardList(t *testing.T) {
 		SetTestConfig("token", "account", "https://api.example.com")
 		defer ResetTestMode()
 
-		cardListColumn = "not-yet"
+		cardListColumn = "maybe"
 		cardListAll = false
 		cardListPage = 0
 		RunTestCommand(func() {
@@ -130,7 +130,7 @@ func TestCardList(t *testing.T) {
 		SetTestConfig("token", "account", "https://api.example.com")
 		defer ResetTestMode()
 
-		cardListColumn = "not-yet"
+		cardListColumn = "maybe"
 		cardListAll = true
 		RunTestCommand(func() {
 			cardListCmd.Run(cardListCmd, []string{})
@@ -561,15 +561,15 @@ func TestCardColumn(t *testing.T) {
 	})
 
 	t.Run("moves card to pseudo columns", func(t *testing.T) {
-		t.Run("not-yet", func(t *testing.T) {
+		t.Run("not-now", func(t *testing.T) {
 			mock := NewMockClient()
-			mock.DeleteResponse = &client.APIResponse{StatusCode: 200, Data: map[string]interface{}{}}
+			mock.PostResponse = &client.APIResponse{StatusCode: 200, Data: map[string]interface{}{}}
 
 			result := SetTestMode(mock)
 			SetTestConfig("token", "account", "https://api.example.com")
 			defer ResetTestMode()
 
-			cardColumnColumn = "not-yet"
+			cardColumnColumn = "not-now"
 			RunTestCommand(func() {
 				cardColumnCmd.Run(cardColumnCmd, []string{"42"})
 			})
@@ -578,14 +578,14 @@ func TestCardColumn(t *testing.T) {
 			if result.ExitCode != 0 {
 				t.Errorf("expected exit code 0, got %d", result.ExitCode)
 			}
-			if len(mock.DeleteCalls) != 1 || mock.DeleteCalls[0].Path != "/cards/42/triage.json" {
-				t.Errorf("expected delete '/cards/42/triage.json', got %+v", mock.DeleteCalls)
+			if len(mock.PostCalls) != 1 || mock.PostCalls[0].Path != "/cards/42/not_now.json" {
+				t.Errorf("expected post '/cards/42/not_now.json', got %+v", mock.PostCalls)
 			}
 		})
 
 		t.Run("maybe", func(t *testing.T) {
 			mock := NewMockClient()
-			mock.PostResponse = &client.APIResponse{StatusCode: 200, Data: map[string]interface{}{}}
+			mock.DeleteResponse = &client.APIResponse{StatusCode: 200, Data: map[string]interface{}{}}
 
 			result := SetTestMode(mock)
 			SetTestConfig("token", "account", "https://api.example.com")
@@ -600,8 +600,8 @@ func TestCardColumn(t *testing.T) {
 			if result.ExitCode != 0 {
 				t.Errorf("expected exit code 0, got %d", result.ExitCode)
 			}
-			if len(mock.PostCalls) != 1 || mock.PostCalls[0].Path != "/cards/42/not_now.json" {
-				t.Errorf("expected post '/cards/42/not_now.json', got %+v", mock.PostCalls)
+			if len(mock.DeleteCalls) != 1 || mock.DeleteCalls[0].Path != "/cards/42/triage.json" {
+				t.Errorf("expected delete '/cards/42/triage.json', got %+v", mock.DeleteCalls)
 			}
 		})
 

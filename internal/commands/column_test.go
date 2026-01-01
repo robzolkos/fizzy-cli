@@ -44,8 +44,8 @@ func TestColumnList(t *testing.T) {
 		}
 
 		first := arr[0].(map[string]interface{})
-		if first["id"] != "not-yet" || first["name"] != "Not Yet" {
-			t.Errorf("expected first pseudo column Not Yet, got %+v", first)
+		if first["id"] != "not-now" || first["name"] != "Not Now" {
+			t.Errorf("expected first pseudo column Not Now, got %+v", first)
 		}
 		second := arr[1].(map[string]interface{})
 		if second["id"] != "maybe" || second["name"] != "Maybe?" {

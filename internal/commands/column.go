@@ -41,7 +41,7 @@ var columnListCmd = &cobra.Command{
 		}
 
 		cols := make([]interface{}, 0, len(data)+3)
-		cols = append(cols, pseudoColumnObject(pseudoColumnNotYet), pseudoColumnObject(pseudoColumnMaybe))
+		cols = append(cols, pseudoColumnObject(pseudoColumnNotNow), pseudoColumnObject(pseudoColumnMaybe))
 		cols = append(cols, data...)
 		cols = append(cols, pseudoColumnObject(pseudoColumnDone))
 
