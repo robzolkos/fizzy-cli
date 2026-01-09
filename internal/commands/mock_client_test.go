@@ -26,6 +26,7 @@ type MockClient struct {
 	GetWithPaginationError error
 	FollowLocationError    error
 	UploadFileError        error
+	DownloadFileError      error
 
 	// Captured calls for verification
 	GetCalls               []MockCall
@@ -36,6 +37,13 @@ type MockClient struct {
 	GetWithPaginationCalls []MockCall
 	FollowLocationCalls    []string
 	UploadFileCalls        []string
+	DownloadFileCalls      []MockDownloadCall
+}
+
+// MockDownloadCall represents a captured download call.
+type MockDownloadCall struct {
+	URLPath  string
+	DestPath string
 }
 
 // MockCall represents a captured API call.
@@ -145,6 +153,14 @@ func (m *MockClient) UploadFile(filePath string) (*client.APIResponse, error) {
 		return nil, m.UploadFileError
 	}
 	return m.UploadFileResponse, nil
+}
+
+func (m *MockClient) DownloadFile(urlPath string, destPath string) error {
+	m.DownloadFileCalls = append(m.DownloadFileCalls, MockDownloadCall{URLPath: urlPath, DestPath: destPath})
+	if m.DownloadFileError != nil {
+		return m.DownloadFileError
+	}
+	return nil
 }
 
 // Helper functions for creating common responses

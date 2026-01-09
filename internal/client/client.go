@@ -450,3 +450,52 @@ func ParsePage(nextURL string) string {
 	}
 	return u.Query().Get("page")
 }
+
+// DownloadFile downloads a file from a URL (following redirects) and saves it to the specified path.
+// The URL should be a relative path like /6085671/rails/active_storage/blobs/redirect/...
+func (c *Client) DownloadFile(urlPath string, destPath string) error {
+	requestURL := c.buildURL(urlPath)
+
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		return errors.NewNetworkError(fmt.Sprintf("Failed to create request: %v", err))
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("User-Agent", "fizzy-cli/1.0")
+
+	if c.Verbose {
+		fmt.Fprintf(os.Stderr, "> GET %s\n", requestURL)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return errors.NewNetworkError(fmt.Sprintf("Request failed: %v", err))
+	}
+	defer resp.Body.Close()
+
+	if c.Verbose {
+		fmt.Fprintf(os.Stderr, "< %d %s\n", resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return errors.NewError(fmt.Sprintf("Download failed: %d %s", resp.StatusCode, string(body)))
+	}
+
+	// Create the destination file
+	out, err := os.Create(destPath)
+	if err != nil {
+		return errors.NewError(fmt.Sprintf("Failed to create file: %v", err))
+	}
+
+	// Copy the response body to the file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		out.Close()
+		os.Remove(destPath)
+		return errors.NewError(fmt.Sprintf("Failed to write file: %v", err))
+	}
+
+	return out.Close()
+}

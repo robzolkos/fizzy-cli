@@ -34,8 +34,11 @@ var rootCmd = &cobra.Command{
 Use fizzy to manage boards, cards, comments, and more from your terminal.`,
 	Version: "dev",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Load config from file/env
-		cfg = config.Load()
+		// In test mode, cfg is already set by SetTestConfig - don't overwrite
+		if cfg == nil {
+			// Load config from file/env
+			cfg = config.Load()
+		}
 
 		// Override with command-line flags
 		if cfgToken != "" {

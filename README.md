@@ -223,6 +223,22 @@ fizzy card watch 42
 fizzy card unwatch 42
 ```
 
+### Card Attachments
+
+```bash
+# List attachments on a card
+fizzy card attachments show 42
+
+# Download all attachments from a card
+fizzy card attachments download 42
+
+# Download a specific attachment by index (1-based)
+fizzy card attachments download 42 1
+
+# Download with a custom filename
+fizzy card attachments download 42 1 -o my-file.png
+```
+
 ### Columns
 
 ```bash

@@ -11,6 +11,7 @@ type API interface {
 	GetWithPagination(path string, fetchAll bool) (*APIResponse, error)
 	FollowLocation(location string) (*APIResponse, error)
 	UploadFile(filePath string) (*APIResponse, error)
+	DownloadFile(urlPath string, destPath string) error
 }
 
 // Ensure Client implements API interface

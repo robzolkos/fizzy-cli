@@ -650,3 +650,164 @@ func TestUserAgentHeader(t *testing.T) {
 	c := New(server.URL, "test-token", "")
 	c.Get("/resource.json")
 }
+
+func TestDownloadFile(t *testing.T) {
+	t.Run("successful download", func(t *testing.T) {
+		fileContent := []byte("test file content for download")
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "GET" {
+				t.Errorf("expected GET, got %s", r.Method)
+			}
+			if r.Header.Get("Authorization") != "Bearer test-token" {
+				t.Errorf("expected Authorization header, got '%s'", r.Header.Get("Authorization"))
+			}
+			if r.Header.Get("User-Agent") != "fizzy-cli/1.0" {
+				t.Errorf("expected User-Agent header, got '%s'", r.Header.Get("User-Agent"))
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write(fileContent)
+		}))
+		defer server.Close()
+
+		tempDir := t.TempDir()
+		destPath := filepath.Join(tempDir, "downloaded.txt")
+
+		c := New(server.URL, "test-token", "")
+		err := c.DownloadFile("/files/test.txt", destPath)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Verify file was created with correct content
+		content, err := os.ReadFile(destPath)
+		if err != nil {
+			t.Fatalf("failed to read downloaded file: %v", err)
+		}
+		if string(content) != string(fileContent) {
+			t.Errorf("expected content '%s', got '%s'", fileContent, content)
+		}
+	})
+
+	t.Run("download with redirect", func(t *testing.T) {
+		fileContent := []byte("redirected content")
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/redirect" {
+				http.Redirect(w, r, "/final", http.StatusFound)
+				return
+			}
+			w.Write(fileContent)
+		}))
+		defer server.Close()
+
+		tempDir := t.TempDir()
+		destPath := filepath.Join(tempDir, "redirected.txt")
+
+		c := New(server.URL, "test-token", "")
+		err := c.DownloadFile("/redirect", destPath)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		content, err := os.ReadFile(destPath)
+		if err != nil {
+			t.Fatalf("failed to read downloaded file: %v", err)
+		}
+		if string(content) != string(fileContent) {
+			t.Errorf("expected content '%s', got '%s'", fileContent, content)
+		}
+	})
+
+	t.Run("404 error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("file not found"))
+		}))
+		defer server.Close()
+
+		tempDir := t.TempDir()
+		destPath := filepath.Join(tempDir, "notfound.txt")
+
+		c := New(server.URL, "test-token", "")
+		err := c.DownloadFile("/missing.txt", destPath)
+
+		if err == nil {
+			t.Fatal("expected error for 404 response")
+		}
+
+		cliErr, ok := err.(*errors.CLIError)
+		if !ok {
+			t.Fatalf("expected CLIError, got %T", err)
+		}
+		if cliErr.Code != "ERROR" {
+			t.Errorf("expected code 'ERROR', got '%s'", cliErr.Code)
+		}
+
+		// Verify file was not created
+		if _, err := os.Stat(destPath); !os.IsNotExist(err) {
+			t.Error("expected file to not exist after 404 error")
+		}
+	})
+
+	t.Run("network error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		destPath := filepath.Join(tempDir, "network-error.txt")
+
+		c := New("http://localhost:1", "test-token", "") // Invalid port
+		err := c.DownloadFile("/file.txt", destPath)
+
+		if err == nil {
+			t.Fatal("expected network error")
+		}
+
+		cliErr, ok := err.(*errors.CLIError)
+		if !ok {
+			t.Fatalf("expected CLIError, got %T", err)
+		}
+		if cliErr.Code != "NETWORK_ERROR" {
+			t.Errorf("expected code 'NETWORK_ERROR', got '%s'", cliErr.Code)
+		}
+	})
+
+	t.Run("invalid destination path", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("content"))
+		}))
+		defer server.Close()
+
+		c := New(server.URL, "test-token", "")
+		err := c.DownloadFile("/file.txt", "/nonexistent/directory/file.txt")
+
+		if err == nil {
+			t.Fatal("expected error for invalid destination path")
+		}
+
+		cliErr, ok := err.(*errors.CLIError)
+		if !ok {
+			t.Fatalf("expected CLIError, got %T", err)
+		}
+		if cliErr.Code != "ERROR" {
+			t.Errorf("expected code 'ERROR', got '%s'", cliErr.Code)
+		}
+	})
+
+	t.Run("verbose mode", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("content"))
+		}))
+		defer server.Close()
+
+		tempDir := t.TempDir()
+		destPath := filepath.Join(tempDir, "verbose.txt")
+
+		c := New(server.URL, "test-token", "")
+		c.Verbose = true
+
+		// Just verify it doesn't panic with verbose mode
+		err := c.DownloadFile("/file.txt", destPath)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
