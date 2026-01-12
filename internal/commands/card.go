@@ -608,6 +608,78 @@ var cardUnwatchCmd = &cobra.Command{
 	},
 }
 
+var cardImageRemoveCmd = &cobra.Command{
+	Use:   "image-remove CARD_NUMBER",
+	Short: "Remove card header image",
+	Long:  "Removes the header image from a card.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		client := getClient()
+		resp, err := client.Delete("/cards/" + args[0] + "/image.json")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		if resp.Data != nil {
+			printSuccess(resp.Data)
+		} else {
+			printSuccess(map[string]interface{}{})
+		}
+	},
+}
+
+var cardGoldenCmd = &cobra.Command{
+	Use:   "golden CARD_NUMBER",
+	Short: "Mark card as golden",
+	Long:  "Marks a card as golden (starred/important).",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		client := getClient()
+		resp, err := client.Post("/cards/"+args[0]+"/goldness.json", nil)
+		if err != nil {
+			exitWithError(err)
+		}
+
+		if resp.Data != nil {
+			printSuccess(resp.Data)
+		} else {
+			printSuccess(map[string]interface{}{})
+		}
+	},
+}
+
+var cardUngoldenCmd = &cobra.Command{
+	Use:   "ungolden CARD_NUMBER",
+	Short: "Remove golden status from card",
+	Long:  "Removes the golden (starred/important) status from a card.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		client := getClient()
+		resp, err := client.Delete("/cards/" + args[0] + "/goldness.json")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		if resp.Data != nil {
+			printSuccess(resp.Data)
+		} else {
+			printSuccess(map[string]interface{}{})
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(cardCmd)
 
@@ -670,4 +742,11 @@ func init() {
 	// Watch/Unwatch
 	cardCmd.AddCommand(cardWatchCmd)
 	cardCmd.AddCommand(cardUnwatchCmd)
+
+	// Image removal
+	cardCmd.AddCommand(cardImageRemoveCmd)
+
+	// Golden
+	cardCmd.AddCommand(cardGoldenCmd)
+	cardCmd.AddCommand(cardUngoldenCmd)
 }
