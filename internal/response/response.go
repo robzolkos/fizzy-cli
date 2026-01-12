@@ -11,6 +11,14 @@ import (
 	"github.com/robzolkos/fizzy-cli/internal/errors"
 )
 
+// prettyPrint controls whether JSON output is indented.
+var prettyPrint bool
+
+// SetPrettyPrint enables or disables pretty-printed JSON output.
+func SetPrettyPrint(enabled bool) {
+	prettyPrint = enabled
+}
+
 // Response represents the JSON response envelope.
 type Response struct {
 	Success    bool                   `json:"success"`
@@ -104,7 +112,9 @@ func createMeta() map[string]interface{} {
 func (r *Response) Print() {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
-	encoder.SetIndent("", "  ")
+	if prettyPrint {
+		encoder.SetIndent("", "  ")
+	}
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(r); err != nil {
 		fmt.Fprintf(os.Stderr, "Error marshaling response: %v\n", err)

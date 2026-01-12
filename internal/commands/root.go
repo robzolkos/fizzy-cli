@@ -17,6 +17,7 @@ var (
 	cfgAccount string
 	cfgAPIURL  string
 	cfgVerbose bool
+	cfgPretty  bool
 
 	// Loaded config
 	cfg *config.Config
@@ -50,6 +51,9 @@ Use fizzy to manage boards, cards, comments, and more from your terminal.`,
 		if cfgAPIURL != "" {
 			cfg.APIURL = cfgAPIURL
 		}
+
+		// Set response formatting
+		response.SetPrettyPrint(cfgPretty)
 	},
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -78,6 +82,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgAccount, "account", "", "Account slug")
 	rootCmd.PersistentFlags().StringVar(&cfgAPIURL, "api-url", "", "API base URL")
 	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Show request/response details")
+	rootCmd.PersistentFlags().BoolVar(&cfgPretty, "pretty", false, "Pretty-print JSON output with indentation")
 }
 
 // getClient returns an API client configured from global settings.
