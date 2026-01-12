@@ -815,3 +815,183 @@ func TestCardUnwatch(t *testing.T) {
 		}
 	})
 }
+
+func TestCardImageRemove(t *testing.T) {
+	t.Run("removes card header image", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.DeleteResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       map[string]interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardImageRemoveCmd.Run(cardImageRemoveCmd, []string{"42"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if len(mock.DeleteCalls) != 1 {
+			t.Fatalf("expected 1 delete call, got %d", len(mock.DeleteCalls))
+		}
+		if mock.DeleteCalls[0].Path != "/cards/42/image.json" {
+			t.Errorf("expected path '/cards/42/image.json', got '%s'", mock.DeleteCalls[0].Path)
+		}
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestConfig("", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardImageRemoveCmd.Run(cardImageRemoveCmd, []string{"42"})
+		})
+
+		if result.ExitCode != errors.ExitAuthFailure {
+			t.Errorf("expected exit code %d, got %d", errors.ExitAuthFailure, result.ExitCode)
+		}
+	})
+
+	t.Run("handles not found error", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.DeleteError = errors.NewNotFoundError("Card not found")
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardImageRemoveCmd.Run(cardImageRemoveCmd, []string{"999"})
+		})
+
+		if result.ExitCode != errors.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d", errors.ExitNotFound, result.ExitCode)
+		}
+	})
+}
+
+func TestCardGolden(t *testing.T) {
+	t.Run("marks card as golden", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.PostResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       map[string]interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardGoldenCmd.Run(cardGoldenCmd, []string{"42"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if len(mock.PostCalls) != 1 {
+			t.Fatalf("expected 1 post call, got %d", len(mock.PostCalls))
+		}
+		if mock.PostCalls[0].Path != "/cards/42/goldness.json" {
+			t.Errorf("expected path '/cards/42/goldness.json', got '%s'", mock.PostCalls[0].Path)
+		}
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestConfig("", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardGoldenCmd.Run(cardGoldenCmd, []string{"42"})
+		})
+
+		if result.ExitCode != errors.ExitAuthFailure {
+			t.Errorf("expected exit code %d, got %d", errors.ExitAuthFailure, result.ExitCode)
+		}
+	})
+
+	t.Run("handles not found error", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.PostError = errors.NewNotFoundError("Card not found")
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardGoldenCmd.Run(cardGoldenCmd, []string{"999"})
+		})
+
+		if result.ExitCode != errors.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d", errors.ExitNotFound, result.ExitCode)
+		}
+	})
+}
+
+func TestCardUngolden(t *testing.T) {
+	t.Run("removes golden status from card", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.DeleteResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       map[string]interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardUngoldenCmd.Run(cardUngoldenCmd, []string{"42"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if len(mock.DeleteCalls) != 1 {
+			t.Fatalf("expected 1 delete call, got %d", len(mock.DeleteCalls))
+		}
+		if mock.DeleteCalls[0].Path != "/cards/42/goldness.json" {
+			t.Errorf("expected path '/cards/42/goldness.json', got '%s'", mock.DeleteCalls[0].Path)
+		}
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestConfig("", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardUngoldenCmd.Run(cardUngoldenCmd, []string{"42"})
+		})
+
+		if result.ExitCode != errors.ExitAuthFailure {
+			t.Errorf("expected exit code %d, got %d", errors.ExitAuthFailure, result.ExitCode)
+		}
+	})
+
+	t.Run("handles not found error", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.DeleteError = errors.NewNotFoundError("Card not found")
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardUngoldenCmd.Run(cardUngoldenCmd, []string{"999"})
+		})
+
+		if result.ExitCode != errors.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d", errors.ExitNotFound, result.ExitCode)
+		}
+	})
+}

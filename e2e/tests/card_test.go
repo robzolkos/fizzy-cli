@@ -481,6 +481,48 @@ func TestCardActions(t *testing.T) {
 			t.Errorf("expected success=true, error: %+v", result.Response.Error)
 		}
 	})
+
+	t.Run("golden card", func(t *testing.T) {
+		result := h.Run("card", "golden", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+
+		// Verify card is now golden
+		showResult := h.Run("card", "show", cardStr)
+		if showResult.ExitCode == harness.ExitSuccess {
+			golden := showResult.GetDataBool("golden")
+			if !golden {
+				t.Error("expected card to be golden after marking as golden")
+			}
+		}
+	})
+
+	t.Run("ungolden card", func(t *testing.T) {
+		result := h.Run("card", "ungolden", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+
+		// Verify card is no longer golden
+		showResult := h.Run("card", "show", cardStr)
+		if showResult.ExitCode == harness.ExitSuccess {
+			golden := showResult.GetDataBool("golden")
+			if golden {
+				t.Error("expected card to not be golden after removing golden status")
+			}
+		}
+	})
 }
 
 func TestCardColumn(t *testing.T) {
@@ -597,6 +639,110 @@ func TestCardCreateMissingTitle(t *testing.T) {
 		// Should fail with error exit code
 		if result.ExitCode == harness.ExitSuccess {
 			t.Error("expected non-zero exit code for missing required option")
+		}
+	})
+}
+
+func TestCardImageRemove(t *testing.T) {
+	h := harness.New(t)
+	defer h.Cleanup.CleanupAll(h)
+
+	boardID := createTestBoard(t, h)
+
+	t.Run("removes header image from card", func(t *testing.T) {
+		// Get the path to the test image fixture
+		wd, _ := os.Getwd()
+		fixturePath := filepath.Join(wd, "..", "testdata", "fixtures", "test_image.png")
+
+		// Check if fixture exists
+		if _, err := os.Stat(fixturePath); os.IsNotExist(err) {
+			t.Skipf("test fixture not found at %s", fixturePath)
+		}
+
+		// Upload the file first to get a signed ID for the header image
+		uploadResult := h.Run("upload", "file", fixturePath)
+		if uploadResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to upload file: %s\nstdout: %s", uploadResult.Stderr, uploadResult.Stdout)
+		}
+
+		signedID := uploadResult.GetDataString("signed_id")
+		if signedID == "" {
+			t.Fatalf("no signed_id returned from upload\nstdout: %s", uploadResult.Stdout)
+		}
+
+		// Create a card with header image
+		title := fmt.Sprintf("Image Remove Test Card %d", time.Now().UnixNano())
+		cardResult := h.Run("card", "create", "--board", boardID, "--title", title, "--image", signedID)
+		if cardResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to create card with image: %s\nstdout: %s", cardResult.Stderr, cardResult.Stdout)
+		}
+
+		cardNumber := cardResult.GetNumberFromLocation()
+		if cardNumber == 0 {
+			cardNumber = cardResult.GetDataInt("number")
+		}
+		if cardNumber == 0 {
+			t.Fatalf("failed to get card number from create (location: %s)", cardResult.GetLocation())
+		}
+		h.Cleanup.AddCard(cardNumber)
+		cardStr := strconv.Itoa(cardNumber)
+
+		// Verify card has image initially
+		showResult := h.Run("card", "show", cardStr)
+		if showResult.ExitCode == harness.ExitSuccess {
+			imageURL := showResult.GetDataString("image_url")
+			if imageURL == "" {
+				t.Log("Warning: card may not have image_url field set immediately after creation")
+			}
+		}
+
+		// Remove the image
+		result := h.Run("card", "image-remove", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+	})
+
+	t.Run("succeeds on card without image", func(t *testing.T) {
+		// Create a card without image
+		title := fmt.Sprintf("No Image Card %d", time.Now().UnixNano())
+		cardResult := h.Run("card", "create", "--board", boardID, "--title", title)
+		if cardResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to create card: %s", cardResult.Stderr)
+		}
+
+		cardNumber := cardResult.GetNumberFromLocation()
+		if cardNumber == 0 {
+			cardNumber = cardResult.GetDataInt("number")
+		}
+		h.Cleanup.AddCard(cardNumber)
+		cardStr := strconv.Itoa(cardNumber)
+
+		// Try to remove non-existent image (should still succeed or return appropriate error)
+		result := h.Run("card", "image-remove", cardStr)
+
+		// The API may return success or not found - either is acceptable
+		if result.ExitCode != harness.ExitSuccess && result.ExitCode != harness.ExitNotFound {
+			t.Errorf("expected exit code %d or %d, got %d\nstderr: %s",
+				harness.ExitSuccess, harness.ExitNotFound, result.ExitCode, result.Stderr)
+		}
+	})
+
+	t.Run("returns not found for non-existent card", func(t *testing.T) {
+		result := h.Run("card", "image-remove", "999999999")
+
+		if result.ExitCode != harness.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d\nstdout: %s",
+				harness.ExitNotFound, result.ExitCode, result.Stdout)
+		}
+
+		if result.Response != nil && result.Response.Success {
+			t.Error("expected success=false")
 		}
 	})
 }

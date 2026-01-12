@@ -221,6 +221,13 @@ fizzy card tag 42 --tag "bug"
 # Watch/unwatch
 fizzy card watch 42
 fizzy card unwatch 42
+
+# Remove card header image
+fizzy card image-remove 42
+
+# Mark/unmark card as golden
+fizzy card golden 42
+fizzy card ungolden 42
 ```
 
 ### Card Attachments
