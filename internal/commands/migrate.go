@@ -641,14 +641,29 @@ func migrateComments(sourceClient, targetClient client.API, sourceCardNum, targe
 }
 
 func migrateSteps(sourceClient, targetClient client.API, sourceCard map[string]interface{}, targetCardNum string) (int, error) {
-	// Steps might be included in the card response or need to be fetched separately
-	// Looking at the API, there's no list endpoint for steps, they might be in the card details
-	// Let's check if steps are in the card object
+	// Steps are not included in card list response, need to fetch card details
 	steps, ok := sourceCard["steps"].([]interface{})
 	if !ok || len(steps) == 0 {
-		// Steps might not be included in list response, need to fetch card details
-		// For now, we'll skip if not available
-		return 0, nil
+		// Fetch card details to get steps
+		sourceCardNum := getIntField(sourceCard, "number")
+		if sourceCardNum == 0 {
+			return 0, nil
+		}
+
+		cardResp, err := sourceClient.Get("/cards/" + strconv.Itoa(sourceCardNum) + ".json")
+		if err != nil {
+			return 0, fmt.Errorf("failed to fetch card details: %w", err)
+		}
+
+		cardData, ok := cardResp.Data.(map[string]interface{})
+		if !ok {
+			return 0, nil
+		}
+
+		steps, ok = cardData["steps"].([]interface{})
+		if !ok || len(steps) == 0 {
+			return 0, nil
+		}
 	}
 
 	created := 0
