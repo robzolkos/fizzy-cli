@@ -375,6 +375,51 @@ fizzy card create --board BOARD_ID --title "Card" --description_file description
 fizzy identity show
 ```
 
+### Board Migration
+
+Migrate boards and cards between accounts. Useful when you've created a board in your personal account and want to transfer it to a team account.
+
+```bash
+# Preview what would be migrated (dry run)
+fizzy migrate board BOARD_ID --from SOURCE_ACCOUNT --to TARGET_ACCOUNT --dry-run
+
+# Migrate a board with all cards
+fizzy migrate board BOARD_ID --from SOURCE_ACCOUNT --to TARGET_ACCOUNT
+
+# Include card header images
+fizzy migrate board BOARD_ID --from SOURCE_ACCOUNT --to TARGET_ACCOUNT --include-images
+
+# Include comments and inline attachments
+fizzy migrate board BOARD_ID --from SOURCE_ACCOUNT --to TARGET_ACCOUNT --include-images --include-comments
+
+# Include steps (to-do items)
+fizzy migrate board BOARD_ID --from SOURCE_ACCOUNT --to TARGET_ACCOUNT --include-steps
+```
+
+| Flag | Description |
+|------|-------------|
+| `--from` | Source account slug (required) |
+| `--to` | Target account slug (required) |
+| `--include-images` | Migrate card header images and inline attachments |
+| `--include-comments` | Migrate card comments |
+| `--include-steps` | Migrate card steps (to-do items) |
+| `--dry-run` | Preview migration without making changes |
+
+**What gets migrated:**
+- Board with the same name
+- All columns (preserving order and colors)
+- All cards with titles, descriptions, timestamps, and tags
+- Card states (closed, golden, column placement)
+- Optionally: header images, inline attachments, comments, and steps
+
+**What cannot be migrated:**
+- Card creators (become the migrating user)
+- Card numbers (new sequential numbers in target)
+- Comment authors (become the migrating user)
+- User assignments (team will need to reassign)
+
+> **Note:** You must have access to both source and target accounts with your API token. Use `fizzy identity show` to see your accessible accounts.
+
 ### Skill Installation
 
 Install the Fizzy skill file for use with AI coding assistants like Claude Code or OpenCode.
