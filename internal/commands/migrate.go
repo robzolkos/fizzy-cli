@@ -51,16 +51,16 @@ Example:
 }
 
 type migrationStats struct {
-	boardCreated     bool
-	targetBoardID    string
-	targetBoardName  string
-	columnsCreated   int
-	cardsCreated     int
-	tagsApplied      int
-	commentsCreated  int
-	stepsCreated     int
-	imagesMigrated   int
-	cardMapping      map[int]int // source card number -> target card number
+	boardCreated    bool
+	targetBoardID   string
+	targetBoardName string
+	columnsCreated  int
+	cardsCreated    int
+	tagsApplied     int
+	commentsCreated int
+	stepsCreated    int
+	imagesMigrated  int
+	cardMapping     map[int]int // source card number -> target card number
 }
 
 func runMigrateBoard(cmd *cobra.Command, args []string) {
