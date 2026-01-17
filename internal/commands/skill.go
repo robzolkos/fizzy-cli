@@ -43,12 +43,17 @@ var skillLocations = []SkillLocation{
 		Path:        ".opencode/skill/fizzy/SKILL.md",
 		Description: "Available only in this project",
 	},
+	{
+		Name:        "Codex (Global)",
+		Path:        codexGlobalSkillPath(),
+		Description: "Available in all Codex projects",
+	},
 }
 
 var skillCmd = &cobra.Command{
 	Use:   "skill",
 	Short: "Install Fizzy skill file",
-	Long:  "Install the Fizzy SKILL.md file for use with Claude Code or OpenCode.",
+	Long:  "Install the Fizzy SKILL.md file for use with Codex, Claude Code, or OpenCode.",
 	Run:   runSkill,
 }
 
@@ -170,6 +175,14 @@ func normalizeSkillPath(path string) string {
 
 	// Path is a directory, add fizzy/SKILL.md
 	return filepath.Join(path, "fizzy", skillFilename)
+}
+
+func codexGlobalSkillPath() string {
+	codexHome := strings.TrimSpace(os.Getenv("CODEX_HOME"))
+	if codexHome == "" {
+		return "~/.codex/skills/fizzy/SKILL.md"
+	}
+	return filepath.Join(codexHome, "skills", "fizzy", skillFilename)
 }
 
 // expandPath expands ~ to home directory (works on both Unix and Windows)
