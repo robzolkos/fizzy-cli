@@ -235,11 +235,7 @@ func runSetup(cmd *cobra.Command, args []string) {
 		Token:   token,
 		Account: selectedAccountSlug,
 		Board:   selectedBoardID,
-	}
-
-	// Only set API URL if not default
-	if apiURL != config.DefaultAPIURL {
-		newConfig.APIURL = apiURL
+		APIURL:  apiURL,
 	}
 
 	if saveGlobal {

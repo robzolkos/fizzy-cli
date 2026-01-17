@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -152,6 +153,7 @@ func Load() *Config {
 		cfg.Board = board
 	}
 
+	ensureAPIURL(cfg)
 	return cfg
 }
 
@@ -167,7 +169,17 @@ func LoadGlobal() *Config {
 			break
 		}
 	}
+	ensureAPIURL(cfg)
 	return cfg
+}
+
+func ensureAPIURL(cfg *Config) {
+	if cfg == nil {
+		return
+	}
+	if strings.TrimSpace(cfg.APIURL) == "" {
+		cfg.APIURL = DefaultAPIURL
+	}
 }
 
 // ConfigPath returns the path to the global config file (creating directory if needed).
