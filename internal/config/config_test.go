@@ -113,6 +113,35 @@ board: file-board-345
 	}
 }
 
+func TestLoad_EmptyAPIURLDefaults(t *testing.T) {
+	// Clear environment variables
+	os.Unsetenv("FIZZY_TOKEN")
+	os.Unsetenv("FIZZY_ACCOUNT")
+	os.Unsetenv("FIZZY_API_URL")
+
+	// Create temp home directory with config file
+	origHome := os.Getenv("HOME")
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", origHome)
+
+	configDir := filepath.Join(tempDir, ".fizzy")
+	os.MkdirAll(configDir, 0700)
+	configFile := filepath.Join(configDir, "config.yaml")
+
+	configContent := `token: file-token
+account: file-account
+api_url: ""
+`
+	os.WriteFile(configFile, []byte(configContent), 0600)
+
+	cfg := Load()
+
+	if cfg.APIURL != DefaultAPIURL {
+		t.Errorf("expected APIURL '%s', got '%s'", DefaultAPIURL, cfg.APIURL)
+	}
+}
+
 func TestLoad_EnvOverridesFile(t *testing.T) {
 	// Create temp home directory with config file
 	origHome := os.Getenv("HOME")
