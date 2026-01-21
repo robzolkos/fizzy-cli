@@ -1184,3 +1184,87 @@ func TestCardUngolden(t *testing.T) {
 		}
 	})
 }
+
+func TestCardMove(t *testing.T) {
+	t.Run("moves card to different board", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.PatchResponse = &client.APIResponse{
+			StatusCode: 204,
+			Data:       nil,
+		}
+		mock.GetResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data: map[string]interface{}{
+				"id":       "abc",
+				"number":   float64(42),
+				"title":    "Test Card",
+				"board_id": "board-456",
+			},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardMoveBoard = "board-456"
+		RunTestCommand(func() {
+			cardMoveCmd.Run(cardMoveCmd, []string{"42"})
+		})
+		cardMoveBoard = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if len(mock.PatchCalls) != 1 {
+			t.Errorf("expected 1 patch call, got %d", len(mock.PatchCalls))
+		}
+		if mock.PatchCalls[0].Path != "/cards/42/board.json" {
+			t.Errorf("expected path '/cards/42/board.json', got '%s'", mock.PatchCalls[0].Path)
+		}
+
+		body := mock.PatchCalls[0].Body.(map[string]interface{})
+		if body["board_id"] != "board-456" {
+			t.Errorf("expected board_id 'board-456', got '%v'", body["board_id"])
+		}
+
+		// Verify it fetched the card after moving
+		if len(mock.GetCalls) != 1 || mock.GetCalls[0].Path != "/cards/42.json" {
+			t.Errorf("expected get call to '/cards/42.json', got %+v", mock.GetCalls)
+		}
+	})
+
+	t.Run("requires --to flag", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardMoveBoard = ""
+		RunTestCommand(func() {
+			cardMoveCmd.Run(cardMoveCmd, []string{"42"})
+		})
+
+		if result.ExitCode != errors.ExitInvalidArgs {
+			t.Errorf("expected exit code %d, got %d", errors.ExitInvalidArgs, result.ExitCode)
+		}
+	})
+
+	t.Run("handles not found error", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.PatchError = errors.NewNotFoundError("Card not found")
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardMoveBoard = "board-456"
+		RunTestCommand(func() {
+			cardMoveCmd.Run(cardMoveCmd, []string{"999"})
+		})
+		cardMoveBoard = ""
+
+		if result.ExitCode != errors.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d", errors.ExitNotFound, result.ExitCode)
+		}
+	})
+}
