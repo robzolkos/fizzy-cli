@@ -21,6 +21,7 @@ var cardListColumn string
 var cardListTag string
 var cardListIndexedBy string
 var cardListAssignee string
+var cardListSort string
 var cardListPage int
 var cardListAll bool
 
@@ -86,6 +87,9 @@ var cardListCmd = &cobra.Command{
 		}
 		if cardListAssignee != "" {
 			params = append(params, "assignee_ids[]="+cardListAssignee)
+		}
+		if cardListSort != "" {
+			params = append(params, "sorted_by="+cardListSort)
 		}
 		if cardListPage > 0 {
 			params = append(params, "page="+strconv.Itoa(cardListPage))
@@ -691,6 +695,7 @@ func init() {
 	cardListCmd.Flags().StringVar(&cardListIndexedBy, "status", "", "Alias for --indexed-by")
 	_ = cardListCmd.Flags().MarkDeprecated("status", "use --indexed-by")
 	cardListCmd.Flags().StringVar(&cardListAssignee, "assignee", "", "Filter by assignee ID")
+	cardListCmd.Flags().StringVar(&cardListSort, "sort", "", "Sort order: newest, oldest, or latest (default)")
 	cardListCmd.Flags().IntVar(&cardListPage, "page", 0, "Page number")
 	cardListCmd.Flags().BoolVar(&cardListAll, "all", false, "Fetch all pages")
 	cardCmd.AddCommand(cardListCmd)

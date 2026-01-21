@@ -167,6 +167,9 @@ fizzy card list --column done
 fizzy card list --tag TAG_ID
 fizzy card list --indexed-by not_now
 fizzy card list --assignee USER_ID
+fizzy card list --sort newest    # oldest cards first (by created_at)
+fizzy card list --sort oldest    # newest cards first (by created_at)
+fizzy card list --sort latest    # most recently updated (default)
 
 # Tip: if you set a default `board` in config (or `FIZZY_BOARD`), `fizzy card list` automatically filters to that board unless you pass `--board`.
 
