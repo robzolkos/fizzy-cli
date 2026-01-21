@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -36,8 +37,20 @@ var tagListCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		// Build summary
+		count := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+		}
+		summary := fmt.Sprintf("%d tags", count)
+		if tagListAll {
+			summary += " (all)"
+		} else if tagListPage > 0 {
+			summary += fmt.Sprintf(" (page %d)", tagListPage)
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPagination(resp.Data, hasNext, resp.LinkNext)
+		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
 	},
 }
 

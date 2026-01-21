@@ -26,6 +26,7 @@ type Response struct {
 	Error      *ErrorDetail           `json:"error,omitempty"`
 	Pagination *Pagination            `json:"pagination,omitempty"`
 	Location   string                 `json:"location,omitempty"`
+	Summary    string                 `json:"summary,omitempty"`
 	Meta       map[string]interface{} `json:"meta,omitempty"`
 }
 
@@ -67,6 +68,33 @@ func SuccessWithPagination(data interface{}, hasNext bool, nextURL string) *Resp
 	resp := &Response{
 		Success: true,
 		Data:    data,
+		Meta:    createMeta(),
+	}
+	if hasNext || nextURL != "" {
+		resp.Pagination = &Pagination{
+			HasNext: hasNext,
+			NextURL: nextURL,
+		}
+	}
+	return resp
+}
+
+// SuccessWithSummary creates a successful response with a summary.
+func SuccessWithSummary(data interface{}, summary string) *Response {
+	return &Response{
+		Success: true,
+		Data:    data,
+		Summary: summary,
+		Meta:    createMeta(),
+	}
+}
+
+// SuccessWithPaginationAndSummary creates a successful response with pagination and summary.
+func SuccessWithPaginationAndSummary(data interface{}, hasNext bool, nextURL string, summary string) *Response {
+	resp := &Response{
+		Success: true,
+		Data:    data,
+		Summary: summary,
 		Meta:    createMeta(),
 	}
 	if hasNext || nextURL != "" {

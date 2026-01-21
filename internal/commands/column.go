@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/robzolkos/fizzy-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
@@ -45,7 +47,10 @@ var columnListCmd = &cobra.Command{
 		cols = append(cols, data...)
 		cols = append(cols, pseudoColumnObject(pseudoColumnDone))
 
-		printSuccess(cols)
+		// Build summary
+		summary := fmt.Sprintf("%d columns", len(cols))
+
+		printSuccessWithSummary(cols, summary)
 	},
 }
 

@@ -482,6 +482,23 @@ Command results output JSON. (`--help` and `--version` output plain text.)
 }
 ```
 
+### Summary Field
+
+List and show commands include a `summary` field with a human-readable description of the response. This is useful for quick feedback in scripts or when piping output.
+
+```bash
+fizzy board list | jq -r '.summary'
+# "5 boards"
+
+fizzy card list --board ABC --all | jq -r '.summary'
+# "42 cards (all)"
+
+fizzy search "bug" | jq -r '.summary'
+# "7 results for \"bug\""
+```
+
+The summary adapts to pagination flags (`--page N` or `--all`) and includes contextual details like unread counts for notifications.
+
 When creating resources, the CLI automatically follows the `Location` header to fetch the complete resource data:
 
 ```json

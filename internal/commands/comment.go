@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -41,8 +42,20 @@ var commentListCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		// Build summary
+		count := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+		}
+		summary := fmt.Sprintf("%d comments on card #%s", count, commentListCard)
+		if commentListAll {
+			summary += " (all)"
+		} else if commentListPage > 0 {
+			summary += fmt.Sprintf(" (page %d)", commentListPage)
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPagination(resp.Data, hasNext, resp.LinkNext)
+		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
 	},
 }
 

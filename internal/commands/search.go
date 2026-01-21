@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -68,8 +69,20 @@ var searchCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		// Build summary
+		count := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+		}
+		summary := fmt.Sprintf("%d results for \"%s\"", count, query)
+		if searchAll {
+			summary = fmt.Sprintf("%d results for \"%s\" (all)", count, query)
+		} else if searchPage > 0 {
+			summary = fmt.Sprintf("%d results for \"%s\" (page %d)", count, query, searchPage)
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPagination(resp.Data, hasNext, resp.LinkNext)
+		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
 	},
 }
 

@@ -206,6 +206,30 @@ func printSuccessWithPagination(data interface{}, hasNext bool, nextURL string) 
 	os.Exit(errors.ExitSuccess)
 }
 
+// printSuccessWithSummary prints a success response with summary.
+func printSuccessWithSummary(data interface{}, summary string) {
+	resp := response.SuccessWithSummary(data, summary)
+	if lastResult != nil {
+		lastResult.Response = resp
+		lastResult.ExitCode = errors.ExitSuccess
+		panic(testExitSignal{}) // Signal to stop execution in test mode
+	}
+	resp.Print()
+	os.Exit(errors.ExitSuccess)
+}
+
+// printSuccessWithPaginationAndSummary prints a success response with pagination and summary.
+func printSuccessWithPaginationAndSummary(data interface{}, hasNext bool, nextURL string, summary string) {
+	resp := response.SuccessWithPaginationAndSummary(data, hasNext, nextURL, summary)
+	if lastResult != nil {
+		lastResult.Response = resp
+		lastResult.ExitCode = errors.ExitSuccess
+		panic(testExitSignal{}) // Signal to stop execution in test mode
+	}
+	resp.Print()
+	os.Exit(errors.ExitSuccess)
+}
+
 // SetTestMode configures the commands package for testing.
 // It sets a mock client factory and captures results instead of exiting.
 func SetTestMode(mockClient client.API) *CommandResult {
