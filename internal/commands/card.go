@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -173,8 +174,20 @@ var cardListCmd = &cobra.Command{
 			resp.Data = filtered
 		}
 
+		// Build summary
+		count := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+		}
+		summary := fmt.Sprintf("%d cards", count)
+		if cardListAll {
+			summary += " (all)"
+		} else if cardListPage > 0 {
+			summary += fmt.Sprintf(" (page %d)", cardListPage)
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPagination(resp.Data, hasNext, resp.LinkNext)
+		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
 	},
 }
 
@@ -194,7 +207,15 @@ var cardShowCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build summary
+		summary := fmt.Sprintf("Card #%s", args[0])
+		if card, ok := resp.Data.(map[string]interface{}); ok {
+			if title, ok := card["title"].(string); ok {
+				summary = fmt.Sprintf("Card #%s: %s", args[0], title)
+			}
+		}
+
+		printSuccessWithSummary(resp.Data, summary)
 	},
 }
 

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -36,8 +37,28 @@ var notificationListCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		// Build summary with unread count
+		count := 0
+		unreadCount := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+			for _, item := range arr {
+				if notif, ok := item.(map[string]interface{}); ok {
+					if read, ok := notif["read"].(bool); ok && !read {
+						unreadCount++
+					}
+				}
+			}
+		}
+		summary := fmt.Sprintf("%d notifications (%d unread)", count, unreadCount)
+		if notificationListAll {
+			summary = fmt.Sprintf("%d notifications (%d unread, all)", count, unreadCount)
+		} else if notificationListPage > 0 {
+			summary = fmt.Sprintf("%d notifications (%d unread, page %d)", count, unreadCount, notificationListPage)
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPagination(resp.Data, hasNext, resp.LinkNext)
+		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
 	},
 }
 

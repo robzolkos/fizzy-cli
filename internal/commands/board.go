@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/robzolkos/fizzy-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
@@ -35,8 +37,20 @@ var boardListCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		// Build summary
+		count := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+		}
+		summary := fmt.Sprintf("%d boards", count)
+		if boardListAll {
+			summary += " (all)"
+		} else if boardListPage > 0 {
+			summary += fmt.Sprintf(" (page %d)", boardListPage)
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPagination(resp.Data, hasNext, resp.LinkNext)
+		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
 	},
 }
 
@@ -56,7 +70,15 @@ var boardShowCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build summary
+		summary := "Board"
+		if board, ok := resp.Data.(map[string]interface{}); ok {
+			if name, ok := board["name"].(string); ok {
+				summary = fmt.Sprintf("Board: %s", name)
+			}
+		}
+
+		printSuccessWithSummary(resp.Data, summary)
 	},
 }
 
