@@ -210,6 +210,10 @@ fizzy card delete 42
 fizzy card close 42
 fizzy card reopen 42
 
+# Move to a different board
+fizzy card move 42 --to BOARD_ID
+fizzy card move 42 -t BOARD_ID
+
 # Move to "Not Now"
 fizzy card postpone 42
 

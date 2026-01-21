@@ -442,6 +442,51 @@ var cardPostponeCmd = &cobra.Command{
 	},
 }
 
+// Card move flags
+var cardMoveBoard string
+
+var cardMoveCmd = &cobra.Command{
+	Use:   "move CARD_NUMBER",
+	Short: "Move card to a different board",
+	Long:  "Moves a card to a different board.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		if cardMoveBoard == "" {
+			exitWithError(newRequiredFlagError("to"))
+		}
+
+		body := map[string]interface{}{
+			"board_id": cardMoveBoard,
+		}
+
+		client := getClient()
+		_, err := client.Patch("/cards/"+args[0]+"/board.json", body)
+		if err != nil {
+			exitWithError(err)
+		}
+
+		// Fetch the updated card to show confirmation with title
+		resp, err := client.Get("/cards/" + args[0] + ".json")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		// Build summary with card title if available
+		summary := fmt.Sprintf("Card #%s moved to board %s", args[0], cardMoveBoard)
+		if card, ok := resp.Data.(map[string]interface{}); ok {
+			if title, ok := card["title"].(string); ok {
+				summary = fmt.Sprintf("Card #%s \"%s\" moved to board %s", args[0], title, cardMoveBoard)
+			}
+		}
+
+		printSuccessWithSummary(resp.Data, summary)
+	},
+}
+
 // Card column flags
 var cardColumnColumn string
 
@@ -781,6 +826,10 @@ func init() {
 	cardCmd.AddCommand(cardCloseCmd)
 	cardCmd.AddCommand(cardReopenCmd)
 	cardCmd.AddCommand(cardPostponeCmd)
+
+	// Move to different board
+	cardMoveCmd.Flags().StringVarP(&cardMoveBoard, "to", "t", "", "Target board ID (required)")
+	cardCmd.AddCommand(cardMoveCmd)
 
 	// Column
 	cardColumnCmd.Flags().StringVar(&cardColumnColumn, "column", "", "Column ID (required)")
