@@ -171,6 +171,15 @@ fizzy card list --sort newest    # oldest cards first (by created_at)
 fizzy card list --sort oldest    # newest cards first (by created_at)
 fizzy card list --sort latest    # most recently updated (default)
 
+# Additional filters
+fizzy card list --search "bug"           # Search by text
+fizzy card list --sort newest            # Sort: newest, oldest, latest (default)
+fizzy card list --creator USER_ID        # Filter by creator
+fizzy card list --closer USER_ID         # Filter by who closed
+fizzy card list --unassigned             # Only unassigned cards
+fizzy card list --created thisweek       # Created: today, yesterday, thisweek, lastweek, thismonth, lastmonth
+fizzy card list --closed thisweek        # Closed: today, yesterday, thisweek, lastweek, thismonth, lastmonth
+
 # Tip: if you set a default `board` in config (or `FIZZY_BOARD`), `fizzy card list` automatically filters to that board unless you pass `--board`.
 
 # Show a card
@@ -325,6 +334,21 @@ fizzy user show USER_ID
 
 ```bash
 fizzy tag list
+```
+
+### Search
+
+```bash
+# Search cards by text
+fizzy search "bug"
+fizzy search "login error"              # Multiple terms (AND)
+
+# Combine with filters
+fizzy search "bug" --board BOARD_ID
+fizzy search "bug" --tag TAG_ID
+fizzy search "bug" --assignee USER_ID
+fizzy search "bug" --indexed-by closed  # Include closed cards
+fizzy search "bug" --sort newest        # Sort by created_at desc
 ```
 
 ### Notifications

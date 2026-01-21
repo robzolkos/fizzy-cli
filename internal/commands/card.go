@@ -21,7 +21,13 @@ var cardListColumn string
 var cardListTag string
 var cardListIndexedBy string
 var cardListAssignee string
+var cardListSearch string
 var cardListSort string
+var cardListCreator string
+var cardListCloser string
+var cardListUnassigned bool
+var cardListCreated string
+var cardListClosed string
 var cardListPage int
 var cardListAll bool
 
@@ -88,8 +94,28 @@ var cardListCmd = &cobra.Command{
 		if cardListAssignee != "" {
 			params = append(params, "assignee_ids[]="+cardListAssignee)
 		}
+		if cardListSearch != "" {
+			for _, term := range strings.Fields(cardListSearch) {
+				params = append(params, "terms[]="+term)
+			}
+		}
 		if cardListSort != "" {
 			params = append(params, "sorted_by="+cardListSort)
+		}
+		if cardListCreator != "" {
+			params = append(params, "creator_ids[]="+cardListCreator)
+		}
+		if cardListCloser != "" {
+			params = append(params, "closer_ids[]="+cardListCloser)
+		}
+		if cardListUnassigned {
+			params = append(params, "assignment_status=unassigned")
+		}
+		if cardListCreated != "" {
+			params = append(params, "creation="+cardListCreated)
+		}
+		if cardListClosed != "" {
+			params = append(params, "closure="+cardListClosed)
 		}
 		if cardListPage > 0 {
 			params = append(params, "page="+strconv.Itoa(cardListPage))
@@ -695,7 +721,13 @@ func init() {
 	cardListCmd.Flags().StringVar(&cardListIndexedBy, "status", "", "Alias for --indexed-by")
 	_ = cardListCmd.Flags().MarkDeprecated("status", "use --indexed-by")
 	cardListCmd.Flags().StringVar(&cardListAssignee, "assignee", "", "Filter by assignee ID")
+	cardListCmd.Flags().StringVar(&cardListSearch, "search", "", "Search terms (space-separated for multiple)")
 	cardListCmd.Flags().StringVar(&cardListSort, "sort", "", "Sort order: newest, oldest, or latest (default)")
+	cardListCmd.Flags().StringVar(&cardListCreator, "creator", "", "Filter by creator user ID")
+	cardListCmd.Flags().StringVar(&cardListCloser, "closer", "", "Filter by closer user ID")
+	cardListCmd.Flags().BoolVar(&cardListUnassigned, "unassigned", false, "Only show unassigned cards")
+	cardListCmd.Flags().StringVar(&cardListCreated, "created", "", "Filter by creation time (today, yesterday, thisweek, lastweek, thismonth, lastmonth)")
+	cardListCmd.Flags().StringVar(&cardListClosed, "closed", "", "Filter by closure time (today, yesterday, thisweek, lastweek, thismonth, lastmonth)")
 	cardListCmd.Flags().IntVar(&cardListPage, "page", 0, "Page number")
 	cardListCmd.Flags().BoolVar(&cardListAll, "all", false, "Fetch all pages")
 	cardCmd.AddCommand(cardListCmd)
