@@ -1,0 +1,156 @@
+package commands
+
+import (
+	"testing"
+
+	"github.com/robzolkos/fizzy-cli/internal/client"
+	"github.com/robzolkos/fizzy-cli/internal/errors"
+)
+
+func TestSearch(t *testing.T) {
+	t.Run("searches cards with single term", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data: []interface{}{
+				map[string]interface{}{"id": "1", "title": "Bug fix"},
+			},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			searchCmd.Run(searchCmd, []string{"bug"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if !result.Response.Success {
+			t.Error("expected success response")
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug" {
+			t.Errorf("expected path '/cards.json?terms[]=bug', got '%s'", path)
+		}
+	})
+
+	t.Run("searches cards with multiple terms", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			searchCmd.Run(searchCmd, []string{"login error"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=login&terms[]=error" {
+			t.Errorf("expected path with multiple terms, got '%s'", path)
+		}
+	})
+
+	t.Run("combines search with board filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		searchBoard = "123"
+		RunTestCommand(func() {
+			searchCmd.Run(searchCmd, []string{"bug"})
+		})
+		searchBoard = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug&board_ids[]=123" {
+			t.Errorf("expected path with board filter, got '%s'", path)
+		}
+	})
+
+	t.Run("applies sort parameter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		searchSort = "newest"
+		RunTestCommand(func() {
+			searchCmd.Run(searchCmd, []string{"bug"})
+		})
+		searchSort = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug&sorted_by=newest" {
+			t.Errorf("expected path with sort, got '%s'", path)
+		}
+	})
+
+	t.Run("applies indexed-by parameter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		searchIndexedBy = "closed"
+		RunTestCommand(func() {
+			searchCmd.Run(searchCmd, []string{"bug"})
+		})
+		searchIndexedBy = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug&indexed_by=closed" {
+			t.Errorf("expected path with indexed_by, got '%s'", path)
+		}
+	})
+
+	t.Run("requires authentication", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestConfig("", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			searchCmd.Run(searchCmd, []string{"bug"})
+		})
+
+		if result.ExitCode != errors.ExitAuthFailure {
+			t.Errorf("expected exit code %d, got %d", errors.ExitAuthFailure, result.ExitCode)
+		}
+	})
+}

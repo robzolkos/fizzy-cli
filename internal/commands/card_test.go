@@ -193,6 +193,195 @@ func TestCardList(t *testing.T) {
 			t.Errorf("expected exit code %d, got %d", errors.ExitAuthFailure, result.ExitCode)
 		}
 	})
+
+	t.Run("applies search filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListSearch = "bug fix"
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListSearch = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug&terms[]=fix" {
+			t.Errorf("expected path with search terms, got '%s'", path)
+		}
+	})
+
+	t.Run("applies sort filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListSort = "newest"
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListSort = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?sorted_by=newest" {
+			t.Errorf("expected path with sort, got '%s'", path)
+		}
+	})
+
+	t.Run("applies creator filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListCreator = "user-123"
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListCreator = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?creator_ids[]=user-123" {
+			t.Errorf("expected path with creator filter, got '%s'", path)
+		}
+	})
+
+	t.Run("applies unassigned filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListUnassigned = true
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListUnassigned = false
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?assignment_status=unassigned" {
+			t.Errorf("expected path with unassigned filter, got '%s'", path)
+		}
+	})
+
+	t.Run("applies created filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListCreated = "thisweek"
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListCreated = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?creation=thisweek" {
+			t.Errorf("expected path with created filter, got '%s'", path)
+		}
+	})
+
+	t.Run("applies closed filter", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListClosed = "lastmonth"
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListClosed = ""
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?closure=lastmonth" {
+			t.Errorf("expected path with closed filter, got '%s'", path)
+		}
+	})
+
+	t.Run("combines multiple new filters", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		cardListBoard = "123"
+		cardListSearch = "bug"
+		cardListSort = "newest"
+		cardListUnassigned = true
+		RunTestCommand(func() {
+			cardListCmd.Run(cardListCmd, []string{})
+		})
+		cardListBoard = ""
+		cardListSearch = ""
+		cardListSort = ""
+		cardListUnassigned = false
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		expected := "/cards.json?board_ids[]=123&terms[]=bug&sorted_by=newest&assignment_status=unassigned"
+		if path != expected {
+			t.Errorf("expected path '%s', got '%s'", expected, path)
+		}
+	})
 }
 
 func TestCardShow(t *testing.T) {
