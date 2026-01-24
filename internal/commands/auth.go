@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/robzolkos/fizzy-cli/internal/config"
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -27,10 +28,17 @@ var authLoginCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(map[string]interface{}{
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("status", "fizzy auth status", "Check auth status"),
+			breadcrumb("identity", "fizzy identity show", "View identity"),
+			breadcrumb("boards", "fizzy board list", "List boards"),
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
 			"authenticated": true,
 			"message":       "Token saved to config file",
-		})
+		}, "", breadcrumbs)
 	},
 }
 
@@ -43,10 +51,15 @@ var authLogoutCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(map[string]interface{}{
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("login", "fizzy auth login <token>", "Log in again"),
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
 			"authenticated": false,
 			"message":       "Logged out successfully",
-		})
+		}, "", breadcrumbs)
 	},
 }
 
@@ -74,7 +87,13 @@ var authStatusCmd = &cobra.Command{
 			}
 		}
 
-		printSuccess(status)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("identity", "fizzy identity show", "View identity"),
+			breadcrumb("logout", "fizzy auth logout", "Log out"),
+		}
+
+		printSuccessWithBreadcrumbs(status, "", breadcrumbs)
 	},
 }
 

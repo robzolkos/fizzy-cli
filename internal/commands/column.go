@@ -2,8 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/robzolkos/fizzy-cli/internal/errors"
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -50,7 +52,13 @@ var columnListCmd = &cobra.Command{
 		// Build summary
 		summary := fmt.Sprintf("%d columns", len(cols))
 
-		printSuccessWithSummary(cols, summary)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("create", fmt.Sprintf("fizzy column create --board %s --name \"name\"", boardID), "Create column"),
+			breadcrumb("cards", fmt.Sprintf("fizzy card list --board %s", boardID), "List cards"),
+		}
+
+		printSuccessWithBreadcrumbs(cols, summary, breadcrumbs)
 	},
 }
 
@@ -67,8 +75,14 @@ var columnShowCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		if pseudo, ok := parsePseudoColumnID(args[0]); ok {
-			printSuccess(pseudoColumnObject(pseudo))
+		columnID := args[0]
+
+		if pseudo, ok := parsePseudoColumnID(columnID); ok {
+			// For pseudo columns, we don't have a board ID context
+			breadcrumbs := []response.Breadcrumb{
+				breadcrumb("columns", "fizzy column list --board <board_id>", "List columns"),
+			}
+			printSuccessWithBreadcrumbs(pseudoColumnObject(pseudo), "", breadcrumbs)
 			return
 		}
 
@@ -78,12 +92,18 @@ var columnShowCmd = &cobra.Command{
 		}
 
 		client := getClient()
-		resp, err := client.Get("/boards/" + boardID + "/columns/" + args[0] + ".json")
+		resp, err := client.Get("/boards/" + boardID + "/columns/" + columnID + ".json")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("columns", fmt.Sprintf("fizzy column list --board %s", boardID), "List columns"),
+			breadcrumb("update", fmt.Sprintf("fizzy column update %s --board %s", columnID, boardID), "Update column"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -130,7 +150,32 @@ var columnCreateCmd = &cobra.Command{
 		if resp.Location != "" {
 			followResp, err := client.FollowLocation(resp.Location)
 			if err == nil && followResp != nil {
-				printSuccessWithLocation(followResp.Data, resp.Location)
+				// Extract column ID from response
+				columnID := ""
+				if col, ok := followResp.Data.(map[string]interface{}); ok {
+					if id, ok := col["id"].(string); ok {
+						columnID = id
+					}
+				}
+
+				// Build breadcrumbs
+				var breadcrumbs []response.Breadcrumb
+				if columnID != "" {
+					breadcrumbs = []response.Breadcrumb{
+						breadcrumb("columns", fmt.Sprintf("fizzy column list --board %s", boardID), "List columns"),
+						breadcrumb("show", fmt.Sprintf("fizzy column show %s --board %s", columnID, boardID), "View column"),
+					}
+				}
+
+				respObj := response.SuccessWithBreadcrumbs(followResp.Data, "", breadcrumbs)
+				respObj.Location = resp.Location
+				if lastResult != nil {
+					lastResult.Response = respObj
+					lastResult.ExitCode = 0
+					panic(testExitSignal{})
+				}
+				respObj.Print()
+				os.Exit(0)
 				return
 			}
 			printSuccessWithLocation(nil, resp.Location)
@@ -177,13 +222,21 @@ var columnUpdateCmd = &cobra.Command{
 			"column": columnParams,
 		}
 
+		columnID := args[0]
+
 		client := getClient()
-		resp, err := client.Patch("/boards/"+boardID+"/columns/"+args[0]+".json", body)
+		resp, err := client.Patch("/boards/"+boardID+"/columns/"+columnID+".json", body)
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("columns", fmt.Sprintf("fizzy column list --board %s", boardID), "List columns"),
+			breadcrumb("show", fmt.Sprintf("fizzy column show %s --board %s", columnID, boardID), "View column"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -215,9 +268,15 @@ var columnDeleteCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(map[string]interface{}{
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("columns", fmt.Sprintf("fizzy column list --board %s", boardID), "List columns"),
+			breadcrumb("create", fmt.Sprintf("fizzy column create --board %s --name \"name\"", boardID), "Create column"),
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
 			"deleted": true,
-		})
+		}, "", breadcrumbs)
 	},
 }
 

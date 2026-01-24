@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +27,12 @@ var identityShowCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("status", "fizzy auth status", "Auth status"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 

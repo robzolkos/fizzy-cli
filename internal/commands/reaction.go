@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +56,23 @@ var reactionListCmd = &cobra.Command{
 			summary = fmt.Sprintf("%d reactions on card #%s", count, reactionListCard)
 		}
 
-		printSuccessWithSummary(resp.Data, summary)
+		// Build breadcrumbs
+		var breadcrumbs []response.Breadcrumb
+		if reactionListComment != "" {
+			breadcrumbs = []response.Breadcrumb{
+				breadcrumb("react", fmt.Sprintf("fizzy reaction create --card %s --comment %s --content \"👍\"", reactionListCard, reactionListComment), "Add reaction"),
+				breadcrumb("comment", fmt.Sprintf("fizzy comment show %s --card %s", reactionListComment, reactionListCard), "View comment"),
+				breadcrumb("show", fmt.Sprintf("fizzy card show %s", reactionListCard), "View card"),
+			}
+		} else {
+			breadcrumbs = []response.Breadcrumb{
+				breadcrumb("react", fmt.Sprintf("fizzy reaction create --card %s --content \"👍\"", reactionListCard), "Add reaction"),
+				breadcrumb("comments", fmt.Sprintf("fizzy comment list --card %s", reactionListCard), "View comments"),
+				breadcrumb("show", fmt.Sprintf("fizzy card show %s", reactionListCard), "View card"),
+			}
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, summary, breadcrumbs)
 	},
 }
 
@@ -98,12 +115,26 @@ var reactionCreateCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		// Reaction create returns just success, no location or data
-		if resp.Data != nil {
-			printSuccess(resp.Data)
+		// Build breadcrumbs
+		var breadcrumbs []response.Breadcrumb
+		if reactionCreateComment != "" {
+			breadcrumbs = []response.Breadcrumb{
+				breadcrumb("reactions", fmt.Sprintf("fizzy reaction list --card %s --comment %s", reactionCreateCard, reactionCreateComment), "List reactions"),
+				breadcrumb("comment", fmt.Sprintf("fizzy comment show %s --card %s", reactionCreateComment, reactionCreateCard), "View comment"),
+			}
 		} else {
-			printSuccess(map[string]interface{}{})
+			breadcrumbs = []response.Breadcrumb{
+				breadcrumb("reactions", fmt.Sprintf("fizzy reaction list --card %s", reactionCreateCard), "List reactions"),
+				breadcrumb("show", fmt.Sprintf("fizzy card show %s", reactionCreateCard), "View card"),
+			}
 		}
+
+		// Reaction create returns just success, no location or data
+		data := resp.Data
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		printSuccessWithBreadcrumbs(data, "", breadcrumbs)
 	},
 }
 
@@ -139,9 +170,23 @@ var reactionDeleteCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(map[string]interface{}{
+		// Build breadcrumbs
+		var breadcrumbs []response.Breadcrumb
+		if reactionDeleteComment != "" {
+			breadcrumbs = []response.Breadcrumb{
+				breadcrumb("reactions", fmt.Sprintf("fizzy reaction list --card %s --comment %s", reactionDeleteCard, reactionDeleteComment), "List reactions"),
+				breadcrumb("comment", fmt.Sprintf("fizzy comment show %s --card %s", reactionDeleteComment, reactionDeleteCard), "View comment"),
+			}
+		} else {
+			breadcrumbs = []response.Breadcrumb{
+				breadcrumb("reactions", fmt.Sprintf("fizzy reaction list --card %s", reactionDeleteCard), "List reactions"),
+				breadcrumb("show", fmt.Sprintf("fizzy card show %s", reactionDeleteCard), "View card"),
+			}
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
 			"deleted": true,
-		})
+		}, "", breadcrumbs)
 	},
 }
 

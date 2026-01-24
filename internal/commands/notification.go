@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -57,8 +58,23 @@ var notificationListCmd = &cobra.Command{
 			summary = fmt.Sprintf("%d notifications (%d unread, page %d)", count, unreadCount, notificationListPage)
 		}
 
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("read", "fizzy notification read <id>", "Mark as read"),
+			breadcrumb("read-all", "fizzy notification read-all", "Mark all as read"),
+			breadcrumb("show", "fizzy card show <card_number>", "View card"),
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
+		if hasNext {
+			nextPage := notificationListPage + 1
+			if nextPage == 0 {
+				nextPage = 2
+			}
+			breadcrumbs = append(breadcrumbs, breadcrumb("next", fmt.Sprintf("fizzy notification list --page %d", nextPage), "Next page"))
+		}
+
+		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, breadcrumbs)
 	},
 }
 
@@ -78,7 +94,12 @@ var notificationReadCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("notifications", "fizzy notification list", "List notifications"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -98,7 +119,12 @@ var notificationUnreadCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("notifications", "fizzy notification list", "List notifications"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -117,7 +143,12 @@ var notificationReadAllCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("notifications", "fizzy notification list", "List notifications"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 

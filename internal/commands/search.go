@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -81,8 +82,14 @@ var searchCmd = &cobra.Command{
 			summary = fmt.Sprintf("%d results for \"%s\" (page %d)", count, query, searchPage)
 		}
 
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", "fizzy card show <number>", "View card details"),
+			breadcrumb("narrow", fmt.Sprintf("fizzy search \"%s\" --board <id>", query), "Filter by board"),
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
+		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, breadcrumbs)
 	},
 }
 

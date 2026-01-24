@@ -512,6 +512,30 @@ fizzy search "bug" | jq -r '.summary'
 
 The summary adapts to pagination flags (`--page N` or `--all`) and includes contextual details like unread counts for notifications.
 
+### Breadcrumbs
+
+Command responses include a `breadcrumbs` array with suggested next actions. This is designed for AI agents (and humans) to discover contextual workflows without needing to know the full CLI.
+
+```bash
+fizzy card show 42 | jq '.breadcrumbs'
+```
+
+```json
+[
+  {"action": "comment", "cmd": "fizzy comment create --card 42 --body \"text\"", "description": "Add comment"},
+  {"action": "triage", "cmd": "fizzy card column 42 --column <column_id>", "description": "Move to column"},
+  {"action": "close", "cmd": "fizzy card close 42", "description": "Close card"},
+  {"action": "assign", "cmd": "fizzy card assign 42 --user <user_id>", "description": "Assign user"}
+]
+```
+
+Each breadcrumb contains:
+- `action`: A short identifier for the action type
+- `cmd`: The complete CLI command to execute
+- `description`: Human-readable description
+
+Breadcrumbs are included by default in all responses. They are contextual - after creating a card you'll see suggestions to view, triage, or comment on it; after listing cards you'll see suggestions to show a specific card, create a new one, or search.
+
 When creating resources, the CLI automatically follows the `Location` header to fetch the complete resource data:
 
 ```json

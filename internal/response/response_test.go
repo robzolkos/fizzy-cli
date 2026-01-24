@@ -327,3 +327,140 @@ func TestPrintDoesNotEscapeHTML(t *testing.T) {
 		t.Errorf("expected HTML tags to be preserved, got: %s", output)
 	}
 }
+
+func TestNewBreadcrumb(t *testing.T) {
+	bc := NewBreadcrumb("show", "fizzy card show 42", "View card details")
+
+	if bc.Action != "show" {
+		t.Errorf("expected Action 'show', got '%s'", bc.Action)
+	}
+	if bc.Cmd != "fizzy card show 42" {
+		t.Errorf("expected Cmd 'fizzy card show 42', got '%s'", bc.Cmd)
+	}
+	if bc.Description != "View card details" {
+		t.Errorf("expected Description 'View card details', got '%s'", bc.Description)
+	}
+}
+
+func TestSuccessWithBreadcrumbs(t *testing.T) {
+	data := map[string]string{"id": "42"}
+	breadcrumbs := []Breadcrumb{
+		NewBreadcrumb("show", "fizzy card show 42", "View card details"),
+		NewBreadcrumb("comment", "fizzy comment create --card 42 --body \"text\"", "Add comment"),
+	}
+
+	resp := SuccessWithBreadcrumbs(data, "Card #42 created", breadcrumbs)
+
+	if !resp.Success {
+		t.Error("expected Success to be true")
+	}
+	if resp.Data == nil {
+		t.Error("expected Data to be set")
+	}
+	if resp.Summary != "Card #42 created" {
+		t.Errorf("expected Summary 'Card #42 created', got '%s'", resp.Summary)
+	}
+	if len(resp.Breadcrumbs) != 2 {
+		t.Errorf("expected 2 breadcrumbs, got %d", len(resp.Breadcrumbs))
+	}
+	if resp.Breadcrumbs[0].Action != "show" {
+		t.Errorf("expected first breadcrumb action 'show', got '%s'", resp.Breadcrumbs[0].Action)
+	}
+	if resp.Breadcrumbs[1].Action != "comment" {
+		t.Errorf("expected second breadcrumb action 'comment', got '%s'", resp.Breadcrumbs[1].Action)
+	}
+	if resp.Meta == nil {
+		t.Error("expected Meta to be set")
+	}
+}
+
+func TestSuccessWithPaginationAndBreadcrumbs(t *testing.T) {
+	data := []string{"item1", "item2"}
+	breadcrumbs := []Breadcrumb{
+		NewBreadcrumb("show", "fizzy card show <number>", "View card details"),
+		NewBreadcrumb("next", "fizzy card list --page 2", "Next page"),
+	}
+
+	t.Run("with pagination and breadcrumbs", func(t *testing.T) {
+		resp := SuccessWithPaginationAndBreadcrumbs(data, true, "https://example.com/page2", "10 cards", breadcrumbs)
+
+		if !resp.Success {
+			t.Error("expected Success to be true")
+		}
+		if resp.Pagination == nil {
+			t.Fatal("expected Pagination to be set")
+		}
+		if !resp.Pagination.HasNext {
+			t.Error("expected HasNext to be true")
+		}
+		if resp.Summary != "10 cards" {
+			t.Errorf("expected Summary '10 cards', got '%s'", resp.Summary)
+		}
+		if len(resp.Breadcrumbs) != 2 {
+			t.Errorf("expected 2 breadcrumbs, got %d", len(resp.Breadcrumbs))
+		}
+	})
+
+	t.Run("without pagination but with breadcrumbs", func(t *testing.T) {
+		resp := SuccessWithPaginationAndBreadcrumbs(data, false, "", "10 cards", breadcrumbs)
+
+		if resp.Pagination != nil {
+			t.Error("expected Pagination to be nil when no next page")
+		}
+		if len(resp.Breadcrumbs) != 2 {
+			t.Errorf("expected 2 breadcrumbs, got %d", len(resp.Breadcrumbs))
+		}
+	})
+}
+
+func TestBreadcrumbsOmittedWhenEmpty(t *testing.T) {
+	resp := Success(map[string]string{"key": "value"})
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	jsonStr := string(data)
+
+	// Breadcrumbs should be omitted when nil/empty
+	if containsKey(jsonStr, "breadcrumbs") {
+		t.Error("expected 'breadcrumbs' to be omitted from JSON when empty")
+	}
+}
+
+func TestBreadcrumbsIncludedWhenPresent(t *testing.T) {
+	breadcrumbs := []Breadcrumb{
+		NewBreadcrumb("show", "fizzy card show 42", "View card"),
+	}
+	resp := SuccessWithBreadcrumbs(map[string]string{"id": "42"}, "", breadcrumbs)
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	jsonStr := string(data)
+
+	// Breadcrumbs should be present
+	if !containsKey(jsonStr, "breadcrumbs") {
+		t.Error("expected 'breadcrumbs' to be present in JSON")
+	}
+
+	// Verify the structure
+	var parsed Response
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+
+	if len(parsed.Breadcrumbs) != 1 {
+		t.Errorf("expected 1 breadcrumb after parsing, got %d", len(parsed.Breadcrumbs))
+	}
+	if parsed.Breadcrumbs[0].Action != "show" {
+		t.Errorf("expected action 'show', got '%s'", parsed.Breadcrumbs[0].Action)
+	}
+	if parsed.Breadcrumbs[0].Cmd != "fizzy card show 42" {
+		t.Errorf("expected cmd 'fizzy card show 42', got '%s'", parsed.Breadcrumbs[0].Cmd)
+	}
+	if parsed.Breadcrumbs[0].Description != "View card" {
+		t.Errorf("expected description 'View card', got '%s'", parsed.Breadcrumbs[0].Description)
+	}
+}
