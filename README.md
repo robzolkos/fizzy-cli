@@ -317,13 +317,22 @@ fizzy step delete STEP_ID --card 42
 ### Reactions
 
 ```bash
+# List reactions on a card
+fizzy reaction list --card 42
+
 # List reactions on a comment
 fizzy reaction list --card 42 --comment COMMENT_ID
 
-# Add a reaction (emoji, max 16 chars)
+# Add a reaction to a card (max 16 chars)
+fizzy reaction create --card 42 --content "👍"
+
+# Add a reaction to a comment (max 16 chars)
 fizzy reaction create --card 42 --comment COMMENT_ID --content "👍"
 
-# Remove a reaction
+# Remove a reaction from a card
+fizzy reaction delete REACTION_ID --card 42
+
+# Remove a reaction from a comment
 fizzy reaction delete REACTION_ID --card 42 --comment COMMENT_ID
 ```
 
