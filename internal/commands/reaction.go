@@ -9,7 +9,7 @@ import (
 var reactionCmd = &cobra.Command{
 	Use:   "reaction",
 	Short: "Manage reactions",
-	Long:  "Commands for managing comment reactions.",
+	Long:  "Commands for managing reactions on cards and comments.",
 }
 
 // Reaction list flags
@@ -18,8 +18,8 @@ var reactionListComment string
 
 var reactionListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List reactions for a comment",
-	Long:  "Lists all reactions for a specific comment.",
+	Short: "List reactions",
+	Long:  "Lists reactions on a card, or on a comment if --comment is provided.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := requireAuthAndAccount(); err != nil {
 			exitWithError(err)
@@ -28,12 +28,17 @@ var reactionListCmd = &cobra.Command{
 		if reactionListCard == "" {
 			exitWithError(newRequiredFlagError("card"))
 		}
-		if reactionListComment == "" {
-			exitWithError(newRequiredFlagError("comment"))
+
+		// Build URL based on whether --comment was provided
+		var path string
+		if reactionListComment != "" {
+			path = "/cards/" + reactionListCard + "/comments/" + reactionListComment + "/reactions.json"
+		} else {
+			path = "/cards/" + reactionListCard + "/reactions.json"
 		}
 
 		client := getClient()
-		resp, err := client.Get("/cards/" + reactionListCard + "/comments/" + reactionListComment + "/reactions.json")
+		resp, err := client.Get(path)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -43,7 +48,12 @@ var reactionListCmd = &cobra.Command{
 		if arr, ok := resp.Data.([]interface{}); ok {
 			count = len(arr)
 		}
-		summary := fmt.Sprintf("%d reactions on comment", count)
+		var summary string
+		if reactionListComment != "" {
+			summary = fmt.Sprintf("%d reactions on comment", count)
+		} else {
+			summary = fmt.Sprintf("%d reactions on card #%s", count, reactionListCard)
+		}
 
 		printSuccessWithSummary(resp.Data, summary)
 	},
@@ -56,8 +66,8 @@ var reactionCreateContent string
 
 var reactionCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Add a reaction to a comment",
-	Long:  "Adds an emoji reaction to a comment.",
+	Short: "Add a reaction",
+	Long:  "Adds a reaction to a card, or to a comment if --comment is provided.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := requireAuthAndAccount(); err != nil {
 			exitWithError(err)
@@ -65,9 +75,6 @@ var reactionCreateCmd = &cobra.Command{
 
 		if reactionCreateCard == "" {
 			exitWithError(newRequiredFlagError("card"))
-		}
-		if reactionCreateComment == "" {
-			exitWithError(newRequiredFlagError("comment"))
 		}
 		if reactionCreateContent == "" {
 			exitWithError(newRequiredFlagError("content"))
@@ -77,8 +84,16 @@ var reactionCreateCmd = &cobra.Command{
 			"content": reactionCreateContent,
 		}
 
+		// Build URL based on whether --comment was provided
+		var path string
+		if reactionCreateComment != "" {
+			path = "/cards/" + reactionCreateCard + "/comments/" + reactionCreateComment + "/reactions.json"
+		} else {
+			path = "/cards/" + reactionCreateCard + "/reactions.json"
+		}
+
 		client := getClient()
-		resp, err := client.Post("/cards/"+reactionCreateCard+"/comments/"+reactionCreateComment+"/reactions.json", body)
+		resp, err := client.Post(path, body)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -99,7 +114,7 @@ var reactionDeleteComment string
 var reactionDeleteCmd = &cobra.Command{
 	Use:   "delete REACTION_ID",
 	Short: "Remove a reaction",
-	Long:  "Removes a reaction from a comment.",
+	Long:  "Removes a reaction from a card, or from a comment if --comment is provided.",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := requireAuthAndAccount(); err != nil {
@@ -109,12 +124,17 @@ var reactionDeleteCmd = &cobra.Command{
 		if reactionDeleteCard == "" {
 			exitWithError(newRequiredFlagError("card"))
 		}
-		if reactionDeleteComment == "" {
-			exitWithError(newRequiredFlagError("comment"))
+
+		// Build URL based on whether --comment was provided
+		var path string
+		if reactionDeleteComment != "" {
+			path = "/cards/" + reactionDeleteCard + "/comments/" + reactionDeleteComment + "/reactions/" + args[0] + ".json"
+		} else {
+			path = "/cards/" + reactionDeleteCard + "/reactions/" + args[0] + ".json"
 		}
 
 		client := getClient()
-		_, err := client.Delete("/cards/" + reactionDeleteCard + "/comments/" + reactionDeleteComment + "/reactions/" + args[0] + ".json")
+		_, err := client.Delete(path)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -130,17 +150,17 @@ func init() {
 
 	// List
 	reactionListCmd.Flags().StringVar(&reactionListCard, "card", "", "Card number (required)")
-	reactionListCmd.Flags().StringVar(&reactionListComment, "comment", "", "Comment ID (required)")
+	reactionListCmd.Flags().StringVar(&reactionListComment, "comment", "", "Comment ID (optional, for comment reactions)")
 	reactionCmd.AddCommand(reactionListCmd)
 
 	// Create
 	reactionCreateCmd.Flags().StringVar(&reactionCreateCard, "card", "", "Card number (required)")
-	reactionCreateCmd.Flags().StringVar(&reactionCreateComment, "comment", "", "Comment ID (required)")
-	reactionCreateCmd.Flags().StringVar(&reactionCreateContent, "content", "", "Emoji content (required)")
+	reactionCreateCmd.Flags().StringVar(&reactionCreateComment, "comment", "", "Comment ID (optional, for comment reactions)")
+	reactionCreateCmd.Flags().StringVar(&reactionCreateContent, "content", "", "Reaction content (required)")
 	reactionCmd.AddCommand(reactionCreateCmd)
 
 	// Delete
 	reactionDeleteCmd.Flags().StringVar(&reactionDeleteCard, "card", "", "Card number (required)")
-	reactionDeleteCmd.Flags().StringVar(&reactionDeleteComment, "comment", "", "Comment ID (required)")
+	reactionDeleteCmd.Flags().StringVar(&reactionDeleteComment, "comment", "", "Comment ID (optional, for comment reactions)")
 	reactionCmd.AddCommand(reactionDeleteCmd)
 }

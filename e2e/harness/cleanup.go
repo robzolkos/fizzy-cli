@@ -88,9 +88,14 @@ func (c *CleanupTracker) AddStep(id string, cardNumber int) {
 	c.Steps = append(c.Steps, StepRef{ID: id, CardNumber: cardNumber})
 }
 
-// AddReaction adds a reaction to the cleanup list.
+// AddReaction adds a comment reaction to the cleanup list.
 func (c *CleanupTracker) AddReaction(id string, cardNumber int, commentID string) {
 	c.Reactions = append(c.Reactions, ReactionRef{ID: id, CardNumber: cardNumber, CommentID: commentID})
+}
+
+// AddCardReaction adds a card reaction to the cleanup list.
+func (c *CleanupTracker) AddCardReaction(id string, cardNumber int) {
+	c.Reactions = append(c.Reactions, ReactionRef{ID: id, CardNumber: cardNumber, CommentID: ""})
 }
 
 // CleanupAll deletes all tracked resources in reverse dependency order.
@@ -99,12 +104,20 @@ func (c *CleanupTracker) CleanupAll(h *Harness) []error {
 	var errors []error
 
 	// Delete in reverse dependency order:
-	// 1. Reactions (depend on comments)
+	// 1. Reactions (depend on comments or cards)
 	for i := len(c.Reactions) - 1; i >= 0; i-- {
 		ref := c.Reactions[i]
-		result := h.Run("reaction", "delete", ref.ID,
-			"--card", strconv.Itoa(ref.CardNumber),
-			"--comment", ref.CommentID)
+		var result *Result
+		if ref.CommentID != "" {
+			// Comment reaction
+			result = h.Run("reaction", "delete", ref.ID,
+				"--card", strconv.Itoa(ref.CardNumber),
+				"--comment", ref.CommentID)
+		} else {
+			// Card reaction
+			result = h.Run("reaction", "delete", ref.ID,
+				"--card", strconv.Itoa(ref.CardNumber))
+		}
 		if result.ExitCode != 0 && result.ExitCode != ExitNotFound {
 			errors = append(errors, fmt.Errorf("failed to delete reaction %s: exit %d", ref.ID, result.ExitCode))
 		}
