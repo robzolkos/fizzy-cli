@@ -69,8 +69,40 @@ func TestReactionList(t *testing.T) {
 		}
 	})
 
-	t.Run("fails without --comment option", func(t *testing.T) {
+}
+
+// TestCardReactionList tests listing reactions directly on a card (no --comment flag)
+func TestCardReactionList(t *testing.T) {
+	h := harness.New(t)
+	defer h.Cleanup.CleanupAll(h)
+
+	boardID := createTestBoard(t, h)
+	cardNumber := createTestCard(t, h, boardID)
+	cardStr := strconv.Itoa(cardNumber)
+
+	t.Run("returns list of reactions for card", func(t *testing.T) {
 		result := h.Run("reaction", "list", "--card", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if result.Response == nil {
+			t.Fatalf("expected JSON response, got nil\nstdout: %s", result.Stdout)
+		}
+
+		if !result.Response.Success {
+			t.Error("expected success=true")
+		}
+
+		arr := result.GetDataArray()
+		if arr == nil {
+			t.Error("expected data to be an array")
+		}
+	})
+
+	t.Run("fails without --card option", func(t *testing.T) {
+		result := h.Run("reaction", "list")
 
 		if result.ExitCode == harness.ExitSuccess {
 			t.Error("expected non-zero exit code for missing required option")
@@ -162,11 +194,93 @@ func TestReactionCreateMissingContent(t *testing.T) {
 	commentID := createTestComment(t, h, cardNumber)
 	cardStr := strconv.Itoa(cardNumber)
 
-	t.Run("fails without --content option", func(t *testing.T) {
+	t.Run("fails without --content option for comment reaction", func(t *testing.T) {
 		result := h.Run("reaction", "create", "--card", cardStr, "--comment", commentID)
 
 		if result.ExitCode == harness.ExitSuccess {
 			t.Error("expected non-zero exit code for missing required option")
 		}
+	})
+
+	t.Run("fails without --content option for card reaction", func(t *testing.T) {
+		result := h.Run("reaction", "create", "--card", cardStr)
+
+		if result.ExitCode == harness.ExitSuccess {
+			t.Error("expected non-zero exit code for missing required option")
+		}
+	})
+}
+
+// TestCardReactionCRUD tests creating and deleting reactions directly on cards
+func TestCardReactionCRUD(t *testing.T) {
+	h := harness.New(t)
+	defer h.Cleanup.CleanupAll(h)
+
+	boardID := createTestBoard(t, h)
+	cardNumber := createTestCard(t, h, boardID)
+	cardStr := strconv.Itoa(cardNumber)
+
+	var reactionID string
+
+	t.Run("create card reaction", func(t *testing.T) {
+		result := h.Run("reaction", "create", "--card", cardStr, "--content", "🎉")
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Fatalf("expected exit code %d, got %d\nstderr: %s\nstdout: %s",
+				harness.ExitSuccess, result.ExitCode, result.Stderr, result.Stdout)
+		}
+
+		if result.Response == nil {
+			t.Fatalf("expected JSON response, got nil\nstdout: %s", result.Stdout)
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+
+		// List reactions to get the ID for cleanup/deletion
+		listResult := h.Run("reaction", "list", "--card", cardStr)
+		if listResult.ExitCode == harness.ExitSuccess && listResult.Response != nil {
+			arr := listResult.GetDataArray()
+			if len(arr) > 0 {
+				// Get the last reaction (most recently created)
+				lastReaction := arr[len(arr)-1].(map[string]interface{})
+				if id, ok := lastReaction["id"].(string); ok {
+					reactionID = id
+					h.Cleanup.AddCardReaction(reactionID, cardNumber)
+				}
+			}
+		}
+		if reactionID == "" {
+			t.Log("Warning: could not get reaction ID for cleanup")
+		}
+	})
+
+	t.Run("delete card reaction", func(t *testing.T) {
+		if reactionID == "" {
+			t.Skip("no reaction ID from create test")
+		}
+
+		result := h.Run("reaction", "delete", reactionID, "--card", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if result.Response == nil {
+			t.Fatal("expected JSON response")
+		}
+
+		if !result.Response.Success {
+			t.Error("expected success=true")
+		}
+
+		deleted := result.GetDataBool("deleted")
+		if !deleted {
+			t.Error("expected deleted=true")
+		}
+
+		// Remove from cleanup since we deleted it
+		h.Cleanup.Reactions = nil
 	})
 }
