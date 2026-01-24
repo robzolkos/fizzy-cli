@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -49,8 +50,22 @@ var userListCmd = &cobra.Command{
 			summary += fmt.Sprintf(" (page %d)", userListPage)
 		}
 
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", "fizzy user show <id>", "View user details"),
+			breadcrumb("assign", "fizzy card assign <number> --user <user_id>", "Assign user to card"),
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
+		if hasNext {
+			nextPage := userListPage + 1
+			if nextPage == 0 {
+				nextPage = 2
+			}
+			breadcrumbs = append(breadcrumbs, breadcrumb("next", fmt.Sprintf("fizzy user list --page %d", nextPage), "Next page"))
+		}
+
+		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, breadcrumbs)
 	},
 }
 
@@ -64,13 +79,21 @@ var userShowCmd = &cobra.Command{
 			exitWithError(err)
 		}
 
+		userID := args[0]
+
 		client := getClient()
-		resp, err := client.Get("/users/" + args[0] + ".json")
+		resp, err := client.Get("/users/" + userID + ".json")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("people", "fizzy user list", "List users"),
+			breadcrumb("assign", fmt.Sprintf("fizzy card assign <number> --user %s", userID), "Assign to card"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 

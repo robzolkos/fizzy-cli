@@ -21,13 +21,14 @@ func SetPrettyPrint(enabled bool) {
 
 // Response represents the JSON response envelope.
 type Response struct {
-	Success    bool                   `json:"success"`
-	Data       interface{}            `json:"data,omitempty"`
-	Error      *ErrorDetail           `json:"error,omitempty"`
-	Pagination *Pagination            `json:"pagination,omitempty"`
-	Location   string                 `json:"location,omitempty"`
-	Summary    string                 `json:"summary,omitempty"`
-	Meta       map[string]interface{} `json:"meta,omitempty"`
+	Success     bool                   `json:"success"`
+	Data        interface{}            `json:"data,omitempty"`
+	Error       *ErrorDetail           `json:"error,omitempty"`
+	Pagination  *Pagination            `json:"pagination,omitempty"`
+	Breadcrumbs []Breadcrumb           `json:"breadcrumbs,omitempty"`
+	Location    string                 `json:"location,omitempty"`
+	Summary     string                 `json:"summary,omitempty"`
+	Meta        map[string]interface{} `json:"meta,omitempty"`
 }
 
 // ErrorDetail represents an error in the response.
@@ -42,6 +43,22 @@ type ErrorDetail struct {
 type Pagination struct {
 	HasNext bool   `json:"has_next"`
 	NextURL string `json:"next_url,omitempty"`
+}
+
+// Breadcrumb represents a suggested next action.
+type Breadcrumb struct {
+	Action      string `json:"action"`
+	Cmd         string `json:"cmd"`
+	Description string `json:"description"`
+}
+
+// NewBreadcrumb creates a new breadcrumb.
+func NewBreadcrumb(action, cmd, description string) Breadcrumb {
+	return Breadcrumb{
+		Action:      action,
+		Cmd:         cmd,
+		Description: description,
+	}
 }
 
 // Success creates a successful response with data.
@@ -96,6 +113,35 @@ func SuccessWithPaginationAndSummary(data interface{}, hasNext bool, nextURL str
 		Data:    data,
 		Summary: summary,
 		Meta:    createMeta(),
+	}
+	if hasNext || nextURL != "" {
+		resp.Pagination = &Pagination{
+			HasNext: hasNext,
+			NextURL: nextURL,
+		}
+	}
+	return resp
+}
+
+// SuccessWithBreadcrumbs creates a successful response with breadcrumbs.
+func SuccessWithBreadcrumbs(data interface{}, summary string, breadcrumbs []Breadcrumb) *Response {
+	return &Response{
+		Success:     true,
+		Data:        data,
+		Summary:     summary,
+		Breadcrumbs: breadcrumbs,
+		Meta:        createMeta(),
+	}
+}
+
+// SuccessWithPaginationAndBreadcrumbs creates a successful response with pagination, summary, and breadcrumbs.
+func SuccessWithPaginationAndBreadcrumbs(data interface{}, hasNext bool, nextURL string, summary string, breadcrumbs []Breadcrumb) *Response {
+	resp := &Response{
+		Success:     true,
+		Data:        data,
+		Summary:     summary,
+		Breadcrumbs: breadcrumbs,
+		Meta:        createMeta(),
 	}
 	if hasNext || nextURL != "" {
 		resp.Pagination = &Pagination{

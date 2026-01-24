@@ -230,6 +230,35 @@ func printSuccessWithPaginationAndSummary(data interface{}, hasNext bool, nextUR
 	os.Exit(errors.ExitSuccess)
 }
 
+// breadcrumb creates a single breadcrumb.
+func breadcrumb(action, cmd, description string) response.Breadcrumb {
+	return response.NewBreadcrumb(action, cmd, description)
+}
+
+// printSuccessWithBreadcrumbs prints a success response with breadcrumbs.
+func printSuccessWithBreadcrumbs(data interface{}, summary string, breadcrumbs []response.Breadcrumb) {
+	resp := response.SuccessWithBreadcrumbs(data, summary, breadcrumbs)
+	if lastResult != nil {
+		lastResult.Response = resp
+		lastResult.ExitCode = errors.ExitSuccess
+		panic(testExitSignal{}) // Signal to stop execution in test mode
+	}
+	resp.Print()
+	os.Exit(errors.ExitSuccess)
+}
+
+// printSuccessWithPaginationAndBreadcrumbs prints a success response with pagination and breadcrumbs.
+func printSuccessWithPaginationAndBreadcrumbs(data interface{}, hasNext bool, nextURL string, summary string, breadcrumbs []response.Breadcrumb) {
+	resp := response.SuccessWithPaginationAndBreadcrumbs(data, hasNext, nextURL, summary, breadcrumbs)
+	if lastResult != nil {
+		lastResult.Response = resp
+		lastResult.ExitCode = errors.ExitSuccess
+		panic(testExitSignal{}) // Signal to stop execution in test mode
+	}
+	resp.Print()
+	os.Exit(errors.ExitSuccess)
+}
+
 // SetTestMode configures the commands package for testing.
 // It sets a mock client factory and captures results instead of exiting.
 func SetTestMode(mockClient client.API) *CommandResult {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -54,8 +55,15 @@ var commentListCmd = &cobra.Command{
 			summary += fmt.Sprintf(" (page %d)", commentListPage)
 		}
 
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("add", fmt.Sprintf("fizzy comment create --card %s --body \"text\"", commentListCard), "Add comment"),
+			breadcrumb("react", fmt.Sprintf("fizzy reaction create --card %s --comment <id> --content \"👍\"", commentListCard), "Add reaction"),
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", commentListCard), "View card"),
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
+		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, breadcrumbs)
 	},
 }
 
@@ -76,13 +84,23 @@ var commentShowCmd = &cobra.Command{
 			exitWithError(newRequiredFlagError("card"))
 		}
 
+		commentID := args[0]
+		cardNumber := commentShowCard
+
 		client := getClient()
-		resp, err := client.Get("/cards/" + commentShowCard + "/comments/" + args[0] + ".json")
+		resp, err := client.Get("/cards/" + cardNumber + "/comments/" + commentID + ".json")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("update", fmt.Sprintf("fizzy comment update %s --card %s", commentID, cardNumber), "Edit comment"),
+			breadcrumb("react", fmt.Sprintf("fizzy reaction create --card %s --comment %s --content \"👍\"", cardNumber, commentID), "Add reaction"),
+			breadcrumb("comments", fmt.Sprintf("fizzy comment list --card %s", cardNumber), "List comments"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -130,24 +148,40 @@ var commentCreateCmd = &cobra.Command{
 			"comment": commentParams,
 		}
 
+		cardNumber := commentCreateCard
+
 		client := getClient()
-		resp, err := client.Post("/cards/"+commentCreateCard+"/comments.json", reqBody)
+		resp, err := client.Post("/cards/"+cardNumber+"/comments.json", reqBody)
 		if err != nil {
 			exitWithError(err)
+		}
+
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("comments", fmt.Sprintf("fizzy comment list --card %s", cardNumber), "List comments"),
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
 		}
 
 		// Create returns location header - follow it to get the created resource
 		if resp.Location != "" {
 			followResp, err := client.FollowLocation(resp.Location)
 			if err == nil && followResp != nil {
-				printSuccessWithLocation(followResp.Data, resp.Location)
+				respObj := response.SuccessWithBreadcrumbs(followResp.Data, "", breadcrumbs)
+				respObj.Location = resp.Location
+				if lastResult != nil {
+					lastResult.Response = respObj
+					lastResult.ExitCode = 0
+					panic(testExitSignal{})
+				}
+				respObj.Print()
+				os.Exit(0)
 				return
 			}
 			printSuccessWithLocation(nil, resp.Location)
 			return
 		}
 
-		printSuccess(resp.Data)
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -186,13 +220,22 @@ var commentUpdateCmd = &cobra.Command{
 			"comment": commentParams,
 		}
 
+		commentID := args[0]
+		cardNumber := commentUpdateCard
+
 		client := getClient()
-		resp, err := client.Patch("/cards/"+commentUpdateCard+"/comments/"+args[0]+".json", reqBody)
+		resp, err := client.Patch("/cards/"+cardNumber+"/comments/"+commentID+".json", reqBody)
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy comment show %s --card %s", commentID, cardNumber), "View comment"),
+			breadcrumb("comments", fmt.Sprintf("fizzy comment list --card %s", cardNumber), "List comments"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -213,15 +256,23 @@ var commentDeleteCmd = &cobra.Command{
 			exitWithError(newRequiredFlagError("card"))
 		}
 
+		cardNumber := commentDeleteCard
+
 		client := getClient()
-		_, err := client.Delete("/cards/" + commentDeleteCard + "/comments/" + args[0] + ".json")
+		_, err := client.Delete("/cards/" + cardNumber + "/comments/" + args[0] + ".json")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(map[string]interface{}{
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("comments", fmt.Sprintf("fizzy comment list --card %s", cardNumber), "List comments"),
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
 			"deleted": true,
-		})
+		}, "", breadcrumbs)
 	},
 }
 

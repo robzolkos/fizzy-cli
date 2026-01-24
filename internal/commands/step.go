@@ -1,6 +1,10 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -27,13 +31,22 @@ var stepShowCmd = &cobra.Command{
 			exitWithError(newRequiredFlagError("card"))
 		}
 
+		stepID := args[0]
+		cardNumber := stepShowCard
+
 		client := getClient()
-		resp, err := client.Get("/cards/" + stepShowCard + "/steps/" + args[0] + ".json")
+		resp, err := client.Get("/cards/" + cardNumber + "/steps/" + stepID + ".json")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("update", fmt.Sprintf("fizzy step update %s --card %s", stepID, cardNumber), "Update step"),
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -69,24 +82,40 @@ var stepCreateCmd = &cobra.Command{
 			"step": stepParams,
 		}
 
+		cardNumber := stepCreateCard
+
 		client := getClient()
-		resp, err := client.Post("/cards/"+stepCreateCard+"/steps.json", body)
+		resp, err := client.Post("/cards/"+cardNumber+"/steps.json", body)
 		if err != nil {
 			exitWithError(err)
+		}
+
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+			breadcrumb("step", fmt.Sprintf("fizzy step create --card %s --content \"text\"", cardNumber), "Add another step"),
 		}
 
 		// Create returns location header - follow it to get the created resource
 		if resp.Location != "" {
 			followResp, err := client.FollowLocation(resp.Location)
 			if err == nil && followResp != nil {
-				printSuccessWithLocation(followResp.Data, resp.Location)
+				respObj := response.SuccessWithBreadcrumbs(followResp.Data, "", breadcrumbs)
+				respObj.Location = resp.Location
+				if lastResult != nil {
+					lastResult.Response = respObj
+					lastResult.ExitCode = 0
+					panic(testExitSignal{})
+				}
+				respObj.Print()
+				os.Exit(0)
 				return
 			}
 			printSuccessWithLocation(nil, resp.Location)
 			return
 		}
 
-		printSuccess(resp.Data)
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -126,13 +155,22 @@ var stepUpdateCmd = &cobra.Command{
 			"step": stepParams,
 		}
 
+		stepID := args[0]
+		cardNumber := stepUpdateCard
+
 		client := getClient()
-		resp, err := client.Patch("/cards/"+stepUpdateCard+"/steps/"+args[0]+".json", body)
+		resp, err := client.Patch("/cards/"+cardNumber+"/steps/"+stepID+".json", body)
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(resp.Data)
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy step show %s --card %s", stepID, cardNumber), "View step"),
+			breadcrumb("card", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
 	},
 }
 
@@ -153,15 +191,23 @@ var stepDeleteCmd = &cobra.Command{
 			exitWithError(newRequiredFlagError("card"))
 		}
 
+		cardNumber := stepDeleteCard
+
 		client := getClient()
-		_, err := client.Delete("/cards/" + stepDeleteCard + "/steps/" + args[0] + ".json")
+		_, err := client.Delete("/cards/" + cardNumber + "/steps/" + args[0] + ".json")
 		if err != nil {
 			exitWithError(err)
 		}
 
-		printSuccess(map[string]interface{}{
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+			breadcrumb("step", fmt.Sprintf("fizzy step create --card %s --content \"text\"", cardNumber), "Add step"),
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
 			"deleted": true,
-		})
+		}, "", breadcrumbs)
 	},
 }
 

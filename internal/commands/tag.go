@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/robzolkos/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
 )
 
@@ -49,8 +50,22 @@ var tagListCmd = &cobra.Command{
 			summary += fmt.Sprintf(" (page %d)", tagListPage)
 		}
 
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("tag", "fizzy card tag <number> --tag <name>", "Tag a card"),
+			breadcrumb("cards", "fizzy card list --tag <id>", "List cards with tag"),
+		}
+
 		hasNext := resp.LinkNext != ""
-		printSuccessWithPaginationAndSummary(resp.Data, hasNext, resp.LinkNext, summary)
+		if hasNext {
+			nextPage := tagListPage + 1
+			if nextPage == 0 {
+				nextPage = 2
+			}
+			breadcrumbs = append(breadcrumbs, breadcrumb("next", fmt.Sprintf("fizzy tag list --page %d", nextPage), "Next page"))
+		}
+
+		printSuccessWithPaginationAndBreadcrumbs(resp.Data, hasNext, resp.LinkNext, summary, breadcrumbs)
 	},
 }
 
