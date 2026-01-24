@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -112,7 +113,8 @@ Use 'fizzy card attachments show CARD_NUMBER' to see available attachments and t
 		// Download the files
 		var results []map[string]interface{}
 		for _, attachment := range toDownload {
-			outputPath := attachment.Filename
+			// Sanitize filename to prevent path traversal attacks
+			outputPath := filepath.Base(attachment.Filename)
 			// If downloading single file with custom output name
 			if len(toDownload) == 1 && attachmentDownloadOutput != "" {
 				outputPath = attachmentDownloadOutput

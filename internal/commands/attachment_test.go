@@ -415,3 +415,84 @@ func stringContains(s, substr string) bool {
 	}
 	return false
 }
+
+func TestAttachmentDownloadSanitizesFilename(t *testing.T) {
+	tests := []struct {
+		name               string
+		maliciousFilename  string
+		expectedOutputPath string
+	}{
+		{
+			name:               "path traversal with ../",
+			maliciousFilename:  "../../../etc/passwd",
+			expectedOutputPath: "passwd",
+		},
+		{
+			name:               "path traversal with subdirectory",
+			maliciousFilename:  "../../.bashrc",
+			expectedOutputPath: ".bashrc",
+		},
+		{
+			name:               "absolute path attempt",
+			maliciousFilename:  "/etc/shadow",
+			expectedOutputPath: "shadow",
+		},
+		{
+			name:               "normal filename unchanged",
+			maliciousFilename:  "safe-file.png",
+			expectedOutputPath: "safe-file.png",
+		},
+		{
+			name:               "filename with spaces",
+			maliciousFilename:  "my document.pdf",
+			expectedOutputPath: "my document.pdf",
+		},
+		{
+			name:               "deeply nested traversal",
+			maliciousFilename:  "../../../../../../../../tmp/malware.sh",
+			expectedOutputPath: "malware.sh",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cardData := map[string]interface{}{
+				"id":     "card-id",
+				"number": 241,
+				"description_html": `<action-text-attachment sgid="test-sgid" content-type="image/png" filename="` + tt.maliciousFilename + `" filesize="1000">
+					<a href="/blobs/blob/file?disposition=attachment">Download</a>
+				</action-text-attachment>`,
+			}
+
+			mock := NewMockClient().WithGetData(cardData)
+			result := SetTestMode(mock)
+			SetTestConfig("test-token", "test-account", "https://api.test.com")
+			defer ResetTestMode()
+
+			rootCmd.SetArgs([]string{"card", "attachments", "download", "241", "1"})
+
+			RunTestCommand(func() {
+				_ = rootCmd.Execute()
+			})
+
+			if result.Response == nil {
+				t.Fatal("expected response, got nil")
+			}
+
+			if !result.Response.Success {
+				t.Errorf("expected success, got error: %v", result.Response)
+				return
+			}
+
+			// Verify the output path was sanitized
+			if len(mock.DownloadFileCalls) != 1 {
+				t.Fatalf("expected 1 download call, got %d", len(mock.DownloadFileCalls))
+			}
+
+			actualOutputPath := mock.DownloadFileCalls[0].DestPath
+			if actualOutputPath != tt.expectedOutputPath {
+				t.Errorf("expected sanitized output path %q, got %q", tt.expectedOutputPath, actualOutputPath)
+			}
+		})
+	}
+}
