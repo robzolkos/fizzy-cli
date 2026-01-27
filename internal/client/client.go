@@ -143,16 +143,17 @@ func (c *Client) request(method, path string, body interface{}) (*APIResponse, e
 		LinkNext:   parseLinkNext(resp.Header.Get("Link")),
 	}
 
+	// Check for error status codes before parsing JSON,
+	// since error responses may not be JSON (e.g. HTML 401 pages)
+	if resp.StatusCode >= 400 {
+		return apiResp, c.errorFromResponse(resp.StatusCode, respBody)
+	}
+
 	// Parse JSON body if present
 	if len(respBody) > 0 {
 		if err := json.Unmarshal(respBody, &apiResp.Data); err != nil {
 			return apiResp, errors.NewError(fmt.Sprintf("Failed to parse JSON response: %v", err))
 		}
-	}
-
-	// Check for error status codes
-	if resp.StatusCode >= 400 {
-		return apiResp, c.errorFromResponse(resp.StatusCode, respBody)
 	}
 
 	return apiResp, nil

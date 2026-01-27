@@ -1,0 +1,52 @@
+package commands
+
+import (
+	"fmt"
+
+	"github.com/robzolkos/fizzy-cli/internal/response"
+	"github.com/spf13/cobra"
+)
+
+var pinCmd = &cobra.Command{
+	Use:   "pin",
+	Short: "Manage pins",
+	Long:  "Commands for managing your pinned cards.",
+}
+
+var pinListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List pinned cards",
+	Long:  "Lists your pinned cards (up to 100).",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		client := getClient()
+		resp, err := client.Get("/my/pins.json")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		// Build summary
+		count := 0
+		if arr, ok := resp.Data.([]interface{}); ok {
+			count = len(arr)
+		}
+		summary := fmt.Sprintf("%d pinned cards", count)
+
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", "fizzy card show <number>", "View card details"),
+			breadcrumb("unpin", "fizzy card unpin <number>", "Unpin a card"),
+			breadcrumb("pin", "fizzy card pin <number>", "Pin a card"),
+		}
+
+		printSuccessWithBreadcrumbs(resp.Data, summary, breadcrumbs)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(pinCmd)
+	pinCmd.AddCommand(pinListCmd)
+}

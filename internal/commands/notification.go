@@ -89,7 +89,7 @@ var notificationReadCmd = &cobra.Command{
 		}
 
 		client := getClient()
-		resp, err := client.Post("/notifications/"+args[0]+"/read.json", nil)
+		resp, err := client.Post("/notifications/"+args[0]+"/reading.json", nil)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -99,7 +99,11 @@ var notificationReadCmd = &cobra.Command{
 			breadcrumb("notifications", "fizzy notification list", "List notifications"),
 		}
 
-		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
+		data := resp.Data
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		printSuccessWithBreadcrumbs(data, "", breadcrumbs)
 	},
 }
 
@@ -114,7 +118,7 @@ var notificationUnreadCmd = &cobra.Command{
 		}
 
 		client := getClient()
-		resp, err := client.Post("/notifications/"+args[0]+"/unread.json", nil)
+		resp, err := client.Delete("/notifications/" + args[0] + "/reading.json")
 		if err != nil {
 			exitWithError(err)
 		}
@@ -124,7 +128,11 @@ var notificationUnreadCmd = &cobra.Command{
 			breadcrumb("notifications", "fizzy notification list", "List notifications"),
 		}
 
-		printSuccessWithBreadcrumbs(resp.Data, "", breadcrumbs)
+		data := resp.Data
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		printSuccessWithBreadcrumbs(data, "", breadcrumbs)
 	},
 }
 
