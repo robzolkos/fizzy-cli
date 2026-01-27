@@ -241,6 +241,10 @@ fizzy card unwatch 42
 # Remove card header image
 fizzy card image-remove 42
 
+# Pin/unpin a card
+fizzy card pin 42
+fizzy card unpin 42
+
 # Mark/unmark card as golden
 fizzy card golden 42
 fizzy card ungolden 42
@@ -347,6 +351,13 @@ fizzy user show USER_ID
 
 ```bash
 fizzy tag list
+```
+
+### Pins
+
+```bash
+# List your pinned cards
+fizzy pin list
 ```
 
 ### Search

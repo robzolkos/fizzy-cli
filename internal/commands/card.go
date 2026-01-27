@@ -885,6 +885,72 @@ var cardImageRemoveCmd = &cobra.Command{
 	},
 }
 
+var cardPinCmd = &cobra.Command{
+	Use:   "pin CARD_NUMBER",
+	Short: "Pin a card",
+	Long:  "Pins a card for quick access.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		cardNumber := args[0]
+
+		client := getClient()
+		resp, err := client.Post("/cards/"+cardNumber+"/pin.json", nil)
+		if err != nil {
+			exitWithError(err)
+		}
+
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+			breadcrumb("pins", "fizzy pin list", "List pinned cards"),
+			breadcrumb("unpin", fmt.Sprintf("fizzy card unpin %s", cardNumber), "Unpin card"),
+		}
+
+		data := resp.Data
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		printSuccessWithBreadcrumbs(data, "", breadcrumbs)
+	},
+}
+
+var cardUnpinCmd = &cobra.Command{
+	Use:   "unpin CARD_NUMBER",
+	Short: "Unpin a card",
+	Long:  "Unpins a card, removing it from your pinned list.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		cardNumber := args[0]
+
+		client := getClient()
+		resp, err := client.Delete("/cards/" + cardNumber + "/pin.json")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		// Build breadcrumbs
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+			breadcrumb("pins", "fizzy pin list", "List pinned cards"),
+			breadcrumb("pin", fmt.Sprintf("fizzy card pin %s", cardNumber), "Pin card"),
+		}
+
+		data := resp.Data
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		printSuccessWithBreadcrumbs(data, "", breadcrumbs)
+	},
+}
+
 var cardGoldenCmd = &cobra.Command{
 	Use:   "golden CARD_NUMBER",
 	Short: "Mark card as golden",
@@ -1029,4 +1095,8 @@ func init() {
 	// Golden
 	cardCmd.AddCommand(cardGoldenCmd)
 	cardCmd.AddCommand(cardUngoldenCmd)
+
+	// Pin/Unpin
+	cardCmd.AddCommand(cardPinCmd)
+	cardCmd.AddCommand(cardUnpinCmd)
 }
