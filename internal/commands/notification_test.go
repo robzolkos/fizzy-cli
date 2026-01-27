@@ -52,8 +52,8 @@ func TestNotificationRead(t *testing.T) {
 		if result.ExitCode != 0 {
 			t.Errorf("expected exit code 0, got %d", result.ExitCode)
 		}
-		if mock.PostCalls[0].Path != "/notifications/notif-1/read.json" {
-			t.Errorf("expected path '/notifications/notif-1/read.json', got '%s'", mock.PostCalls[0].Path)
+		if mock.PostCalls[0].Path != "/notifications/notif-1/reading.json" {
+			t.Errorf("expected path '/notifications/notif-1/reading.json', got '%s'", mock.PostCalls[0].Path)
 		}
 	})
 }
@@ -61,7 +61,7 @@ func TestNotificationRead(t *testing.T) {
 func TestNotificationUnread(t *testing.T) {
 	t.Run("marks notification as unread", func(t *testing.T) {
 		mock := NewMockClient()
-		mock.PostResponse = &client.APIResponse{
+		mock.DeleteResponse = &client.APIResponse{
 			StatusCode: 200,
 			Data:       map[string]interface{}{},
 		}
@@ -77,8 +77,8 @@ func TestNotificationUnread(t *testing.T) {
 		if result.ExitCode != 0 {
 			t.Errorf("expected exit code 0, got %d", result.ExitCode)
 		}
-		if mock.PostCalls[0].Path != "/notifications/notif-1/unread.json" {
-			t.Errorf("expected path '/notifications/notif-1/unread.json', got '%s'", mock.PostCalls[0].Path)
+		if mock.DeleteCalls[0].Path != "/notifications/notif-1/reading.json" {
+			t.Errorf("expected path '/notifications/notif-1/reading.json', got '%s'", mock.DeleteCalls[0].Path)
 		}
 	})
 }
