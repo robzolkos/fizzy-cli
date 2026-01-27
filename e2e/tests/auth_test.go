@@ -110,8 +110,6 @@ func TestAuthLogin(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	configDir := filepath.Join(tmpDir, ".fizzy")
-
 	t.Run("saves token to config file", func(t *testing.T) {
 		// Run login with HOME set to temp directory
 		result := harness.Execute(cfg.BinaryPath, []string{"auth", "login", cfg.Token}, map[string]string{
@@ -122,10 +120,13 @@ func TestAuthLogin(t *testing.T) {
 			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
 		}
 
-		// Check config file was created
-		configPath := filepath.Join(configDir, "config.yaml")
-		if _, err := os.Stat(configPath); os.IsNotExist(err) {
-			t.Error("config file was not created")
+		// Check config file was created (preferred path is ~/.config/fizzy/config.yaml)
+		preferredPath := filepath.Join(tmpDir, ".config", "fizzy", "config.yaml")
+		legacyPath := filepath.Join(tmpDir, ".fizzy", "config.yaml")
+		_, errPreferred := os.Stat(preferredPath)
+		_, errLegacy := os.Stat(legacyPath)
+		if os.IsNotExist(errPreferred) && os.IsNotExist(errLegacy) {
+			t.Errorf("config file was not created at either %s or %s", preferredPath, legacyPath)
 		}
 	})
 }

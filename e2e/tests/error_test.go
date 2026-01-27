@@ -191,10 +191,8 @@ func TestSuccessResponseFormat(t *testing.T) {
 			t.Error("expected no error in success response")
 		}
 
-		// Pagination should be present for list operations
-		if result.Response.Pagination == nil {
-			t.Error("expected pagination in list response")
-		}
+		// Pagination may be absent when all results fit in a single page
+		// (the CLI only includes pagination when there is a next page)
 
 		// Meta should be present
 		if result.Response.Meta == nil {

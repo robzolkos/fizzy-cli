@@ -617,8 +617,10 @@ func TestCardShowNotFound(t *testing.T) {
 func TestCardCreateMissingBoard(t *testing.T) {
 	h := harness.New(t)
 
-	t.Run("fails without required --board option", func(t *testing.T) {
-		result := h.Run("card", "create", "--title", "Test")
+	t.Run("fails without required --board option when no default board configured", func(t *testing.T) {
+		// Use a temp HOME so the global config (which may have a default board) is not found
+		tmpHome := t.TempDir()
+		result := h.RunWithEnv(map[string]string{"HOME": tmpHome}, "card", "create", "--title", "Test")
 
 		// Should fail with error exit code
 		if result.ExitCode == harness.ExitSuccess {

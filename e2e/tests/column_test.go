@@ -35,8 +35,10 @@ func TestColumnList(t *testing.T) {
 		}
 	})
 
-	t.Run("fails without --board option", func(t *testing.T) {
-		result := h.Run("column", "list")
+	t.Run("fails without --board option when no default board configured", func(t *testing.T) {
+		// Use a temp HOME so the global config (which may have a default board) is not found
+		tmpHome := t.TempDir()
+		result := h.RunWithEnv(map[string]string{"HOME": tmpHome}, "column", "list")
 
 		if result.ExitCode == harness.ExitSuccess {
 			t.Error("expected non-zero exit code for missing required option")
