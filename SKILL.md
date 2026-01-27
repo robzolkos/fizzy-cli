@@ -1,11 +1,11 @@
 ---
 name: fizzy
-description: Manages Fizzy boards, cards, steps, comments, and reactions. Use when user asks about boards, cards, tasks, backlog or anything Fizzy.
+description: Manages Fizzy boards, cards, steps, comments, reactions, and pins. Use when user asks about boards, cards, tasks, backlog or anything Fizzy.
 ---
 
 # Fizzy CLI Skill
 
-Manage Fizzy boards, cards, steps, comments, and reactions.
+Manage Fizzy boards, cards, steps, comments, reactions, and pins.
 
 ## Quick Reference
 
@@ -21,6 +21,7 @@ Manage Fizzy boards, cards, steps, comments, and reactions.
 | tag | `tag list` | - | - | - | - | - |
 | user | `user list` | `user show ID` | - | - | - | - |
 | notification | `notification list` | - | - | - | - | - |
+| pin | `pin list` | - | - | - | - | `card pin NUMBER`, `card unpin NUMBER` |
 
 ---
 
@@ -496,6 +497,8 @@ fizzy card assign CARD_NUMBER --user ID       # Toggle user assignment
 fizzy card tag CARD_NUMBER --tag "name"       # Toggle tag (creates tag if needed)
 fizzy card watch CARD_NUMBER                  # Subscribe to notifications
 fizzy card unwatch CARD_NUMBER                # Unsubscribe
+fizzy card pin CARD_NUMBER                    # Pin card for quick access
+fizzy card unpin CARD_NUMBER                  # Unpin card
 fizzy card golden CARD_NUMBER                 # Mark as golden/starred
 fizzy card ungolden CARD_NUMBER               # Remove golden status
 fizzy card image-remove CARD_NUMBER           # Remove header image
@@ -577,6 +580,12 @@ fizzy tag list [--page N] [--all]
 ```bash
 fizzy user list [--page N] [--all]
 fizzy user show USER_ID
+```
+
+### Pins
+
+```bash
+fizzy pin list                                 # List your pinned cards (up to 100)
 ```
 
 ### Notifications
