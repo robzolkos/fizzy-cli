@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const skillSourceURL = "https://raw.githubusercontent.com/robzolkos/fizzy-cli/refs/heads/master/SKILL.md"
+const skillSourceURL = "https://raw.githubusercontent.com/robzolkos/fizzy-cli/refs/heads/master/skills/fizzy/SKILL.md"
 const skillFilename = "SKILL.md"
 
 // SkillLocation represents a predefined skill installation location
