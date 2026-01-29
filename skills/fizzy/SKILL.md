@@ -276,6 +276,8 @@ fizzy card list --page 1 | jq '.data[:5]'
 fizzy card list --all
 ```
 
+**IMPORTANT:** The `--all` flag controls pagination only - it fetches all pages of results for your current filter. It does NOT change which cards are included. By default, `card list` returns only open cards. See [Card Statuses](#card-statuses) for how to fetch closed or postponed cards.
+
 Commands supporting `--all` and `--page`:
 - `board list`
 - `card list`
@@ -284,6 +286,43 @@ Commands supporting `--all` and `--page`:
 - `tag list`
 - `user list`
 - `notification list`
+
+---
+
+## Card Statuses
+
+Cards exist in different states. By default, `fizzy card list` returns **open cards only** (cards in triage or columns). To fetch cards in other states, use the `--indexed-by` or `--column` flags:
+
+| Status | How to fetch | Description |
+|--------|--------------|-------------|
+| Open (default) | `fizzy card list` | Cards in triage ("Maybe?") or any column |
+| Closed/Done | `fizzy card list --indexed-by closed` | Completed cards |
+| Not Now | `fizzy card list --indexed-by not_now` | Postponed cards |
+| Golden | `fizzy card list --indexed-by golden` | Starred/important cards |
+| Stalled | `fizzy card list --indexed-by stalled` | Cards with no recent activity |
+
+You can also use pseudo-columns:
+
+```bash
+fizzy card list --column done --all     # Same as --indexed-by closed
+fizzy card list --column not-now --all  # Same as --indexed-by not_now
+fizzy card list --column maybe --all    # Cards in triage (no column assigned)
+```
+
+**Fetching all cards on a board:**
+
+To get all cards regardless of status (for example, to build a complete board view), make separate queries:
+
+```bash
+# Open cards (triage + columns)
+fizzy card list --board BOARD_ID --all
+
+# Closed/Done cards
+fizzy card list --board BOARD_ID --indexed-by closed --all
+
+# Optionally, Not Now cards
+fizzy card list --board BOARD_ID --indexed-by not_now --all
+```
 
 ---
 
