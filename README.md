@@ -473,7 +473,7 @@ fizzy migrate board BOARD_ID --from SOURCE_ACCOUNT --to TARGET_ACCOUNT --include
 
 ### Skill Installation
 
-Install the Fizzy skill file ([SKILL.md](SKILL.md)) for use with AI coding assistants like Codex, Claude Code, or OpenCode.
+Install the Fizzy skill file ([SKILL.md](skills/fizzy/SKILL.md)) for use with AI coding assistants like Codex, Claude Code, or OpenCode.
 
 ```bash
 fizzy skill
