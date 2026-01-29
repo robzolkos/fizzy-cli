@@ -203,6 +203,41 @@ fizzy card update 42 --created-at "2019-01-01T00:00:00Z"
 fizzy card delete 42
 ```
 
+### Card Statuses
+
+Cards in Fizzy exist in different states. By default, `fizzy card list` returns **open cards only** (cards in triage or columns). To fetch cards in other states, use the `--indexed-by` or `--column` flags:
+
+| Status | How to fetch | Description |
+|--------|--------------|-------------|
+| Open (default) | `fizzy card list` | Cards in triage ("Maybe?") or any column |
+| Closed/Done | `fizzy card list --indexed-by closed` | Completed cards |
+| Not Now | `fizzy card list --indexed-by not_now` | Postponed cards |
+| Golden | `fizzy card list --indexed-by golden` | Starred/important cards |
+| Stalled | `fizzy card list --indexed-by stalled` | Cards with no recent activity |
+
+You can also use pseudo-columns:
+
+```bash
+fizzy card list --column done --all     # Same as --indexed-by closed
+fizzy card list --column not-now --all  # Same as --indexed-by not_now
+fizzy card list --column maybe --all    # Cards in triage (no column assigned)
+```
+
+**Fetching all cards on a board:**
+
+To get all cards regardless of status (for example, to build a complete board view), you need to make separate queries and combine the results:
+
+```bash
+# Open cards (triage + columns)
+fizzy card list --board BOARD_ID --all
+
+# Closed/Done cards
+fizzy card list --board BOARD_ID --indexed-by closed --all
+
+# Optionally, Not Now cards
+fizzy card list --board BOARD_ID --indexed-by not_now --all
+```
+
 ### Card Actions
 
 ```bash
@@ -593,12 +628,14 @@ Errors return a non-zero exit code and structured error info:
 
 ## Pagination
 
-List commands return paginated results. Use `--page` to fetch specific pages or `--all` to fetch everything:
+List commands return paginated results. Use `--page` to fetch specific pages or `--all` to fetch all pages:
 
 ```bash
 fizzy card list --page 2
-fizzy card list --all
+fizzy card list --all      # Fetches all pages of the current filter
 ```
+
+> **Note:** The `--all` flag controls pagination only - it fetches all pages of results for your current filter. It does not change which cards are included. See [Card Statuses](#card-statuses) for how to fetch closed or postponed cards.
 
 ## Development
 
