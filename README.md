@@ -291,6 +291,9 @@ fizzy card ungolden 42
 # List attachments on a card
 fizzy card attachments show 42
 
+# Include attachments from comments
+fizzy card attachments show 42 --include-comments
+
 # Download all attachments from a card
 fizzy card attachments download 42
 
@@ -299,6 +302,12 @@ fizzy card attachments download 42 1
 
 # Download with a custom filename
 fizzy card attachments download 42 1 -o my-file.png
+
+# Download with a prefix for multiple files (produces test_1.png, test_2.png, etc.)
+fizzy card attachments download 42 -o test
+
+# Include attachments from comments when downloading
+fizzy card attachments download 42 --include-comments
 ```
 
 ### Columns
@@ -332,6 +341,22 @@ fizzy comment create --card 42 --body "Old comment" --created-at "2020-01-15T10:
 
 fizzy comment update COMMENT_ID --card 42 --body "Updated comment"
 fizzy comment delete COMMENT_ID --card 42
+```
+
+### Comment Attachments
+
+```bash
+# List attachments embedded in comments on a card
+fizzy comment attachments show --card 42
+
+# Download all comment attachments
+fizzy comment attachments download --card 42
+
+# Download a specific comment attachment by index (1-based)
+fizzy comment attachments download --card 42 1
+
+# Download with a custom filename
+fizzy comment attachments download --card 42 1 -o my-file.png
 ```
 
 ### Steps (To-Do Items)
