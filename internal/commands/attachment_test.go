@@ -73,6 +73,27 @@ func TestParseAttachments(t *testing.T) {
 			html:     "",
 			expected: []Attachment{},
 		},
+		{
+			name: "filters out mentions (no filename or download URL)",
+			html: `<div>
+  <action-text-attachment sgid="mention-sgid" content-type="application/vnd.actiontext.mention" url="https://example.com/users/1">
+    <span>@user</span>
+  </action-text-attachment>
+  <action-text-attachment sgid="real-sgid" content-type="image/png" filename="real.png" filesize="500">
+    <a href="/blobs/blob1/real.png?disposition=attachment">Download</a>
+  </action-text-attachment>
+</div>`,
+			expected: []Attachment{
+				{
+					Index:       1,
+					Filename:    "real.png",
+					ContentType: "image/png",
+					Filesize:    500,
+					SGID:        "real-sgid",
+					DownloadURL: "/blobs/blob1/real.png?disposition=attachment",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -183,6 +204,75 @@ func TestCardAttachmentsCommand(t *testing.T) {
 				if result.Response.Success {
 					t.Errorf("expected error containing %q, got success", tt.expectError)
 				}
+			}
+		})
+	}
+}
+
+func TestBuildOutputPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		flag     string
+		filename string
+		index    int
+		total    int
+		expected string
+	}{
+		{
+			name:     "no flag uses original filename",
+			flag:     "",
+			filename: "screenshot.png",
+			index:    1,
+			total:    1,
+			expected: "screenshot.png",
+		},
+		{
+			name:     "single file uses flag as exact name",
+			flag:     "output.png",
+			filename: "screenshot.png",
+			index:    1,
+			total:    1,
+			expected: "output.png",
+		},
+		{
+			name:     "multiple files uses flag as prefix",
+			flag:     "test.png",
+			filename: "screenshot.png",
+			index:    1,
+			total:    3,
+			expected: "test_1.png",
+		},
+		{
+			name:     "prefix with second file keeps original extension",
+			flag:     "test.png",
+			filename: "document.pdf",
+			index:    2,
+			total:    3,
+			expected: "test_2.pdf",
+		},
+		{
+			name:     "prefix without extension",
+			flag:     "backup",
+			filename: "image.jpg",
+			index:    1,
+			total:    2,
+			expected: "backup_1.jpg",
+		},
+		{
+			name:     "sanitizes path traversal in original filename",
+			flag:     "",
+			filename: "../../../etc/passwd",
+			index:    1,
+			total:    1,
+			expected: "passwd",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildOutputPath(tt.flag, tt.filename, tt.index, tt.total)
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
 			}
 		})
 	}
