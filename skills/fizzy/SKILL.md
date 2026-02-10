@@ -15,7 +15,7 @@ Manage Fizzy boards, cards, steps, comments, reactions, and pins.
 | card | `card list` | `card show NUMBER` | `card create` | `card update NUMBER` | `card delete NUMBER` | `card move NUMBER` |
 | search | `search QUERY` | - | - | - | - | - |
 | column | `column list --board ID` | `column show ID --board ID` | `column create` | `column update ID` | `column delete ID` | - |
-| comment | `comment list --card NUMBER` | `comment show ID --card NUMBER` | `comment create` | `comment update ID` | `comment delete ID` | - |
+| comment | `comment list --card NUMBER` | `comment show ID --card NUMBER` | `comment create` | `comment update ID` | `comment delete ID` | `comment attachments show --card NUMBER` |
 | step | - | `step show ID --card NUMBER` | `step create` | `step update ID` | `step delete ID` | - |
 | reaction | `reaction list` | - | `reaction create` | - | `reaction delete ID` | - |
 | tag | `tag list` | - | - | - | - | - |
@@ -546,9 +546,9 @@ fizzy card image-remove CARD_NUMBER           # Remove header image
 #### Attachments
 
 ```bash
-fizzy card attachments show CARD_NUMBER                    # List attachments
-fizzy card attachments download CARD_NUMBER [INDEX]        # Download (1-based index)
-  -o, --output FILENAME                                    # Output filename (single file)
+fizzy card attachments show CARD_NUMBER [--include-comments]           # List attachments
+fizzy card attachments download CARD_NUMBER [INDEX] [--include-comments]  # Download (1-based index)
+  -o, --output FILENAME                                    # Exact name (single) or prefix (multiple: test_1.png, test_2.png)
 ```
 
 ### Columns
@@ -571,6 +571,14 @@ fizzy comment show COMMENT_ID --card NUMBER
 fizzy comment create --card NUMBER --body "HTML" [--body_file PATH] [--created-at TIMESTAMP]
 fizzy comment update COMMENT_ID --card NUMBER [--body "HTML"] [--body_file PATH]
 fizzy comment delete COMMENT_ID --card NUMBER
+```
+
+#### Comment Attachments
+
+```bash
+fizzy comment attachments show --card NUMBER                  # List attachments in comments
+fizzy comment attachments download --card NUMBER [INDEX]      # Download (1-based index)
+  -o, --output FILENAME                                       # Exact name (single) or prefix (multiple: test_1.png, test_2.png)
 ```
 
 ### Steps (To-Do Items)

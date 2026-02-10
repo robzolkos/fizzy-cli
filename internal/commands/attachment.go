@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/robzolkos/fizzy-cli/internal/errors"
 	"github.com/spf13/cobra"
@@ -27,11 +29,16 @@ var attachmentsCmd = &cobra.Command{
 	Long:  "Commands for viewing and downloading card attachments.",
 }
 
+// Attachment show flags
+var attachmentsShowIncludeComments bool
+
 var attachmentsShowCmd = &cobra.Command{
 	Use:   "show CARD_NUMBER",
 	Short: "List attachments on a card",
-	Long:  "Lists all attachments embedded in a card's description.",
-	Args:  cobra.ExactArgs(1),
+	Long: `Lists all attachments embedded in a card's description.
+
+Use --include-comments to also include attachments from comments on the card.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := requireAuthAndAccount(); err != nil {
 			exitWithError(err)
@@ -51,12 +58,27 @@ var attachmentsShowCmd = &cobra.Command{
 		descriptionHTML, _ := cardData["description_html"].(string)
 		attachments := parseAttachments(descriptionHTML)
 
+		if attachmentsShowIncludeComments {
+			commentsResp, err := client.GetWithPagination("/cards/"+args[0]+"/comments.json", true)
+			if err == nil {
+				if comments, ok := commentsResp.Data.([]interface{}); ok {
+					commentAttachments := extractCommentAttachments(comments)
+					// Re-index and append
+					for _, ca := range commentAttachments {
+						ca.Attachment.Index = len(attachments) + 1
+						attachments = append(attachments, ca.Attachment)
+					}
+				}
+			}
+		}
+
 		printSuccess(attachments)
 	},
 }
 
 // Attachment download flags
 var attachmentDownloadOutput string
+var attachmentsDownloadIncludeComments bool
 
 var attachmentsDownloadCmd = &cobra.Command{
 	Use:   "download CARD_NUMBER [ATTACHMENT_INDEX]",
@@ -65,6 +87,8 @@ var attachmentsDownloadCmd = &cobra.Command{
 
 If ATTACHMENT_INDEX is provided, downloads only that attachment (1-based index).
 If ATTACHMENT_INDEX is omitted, downloads all attachments.
+
+Use --include-comments to also download attachments from comments on the card.
 
 Use 'fizzy card attachments show CARD_NUMBER' to see available attachments and their indices.`,
 	Args: cobra.RangeArgs(1, 2),
@@ -89,6 +113,19 @@ Use 'fizzy card attachments show CARD_NUMBER' to see available attachments and t
 		descriptionHTML, _ := cardData["description_html"].(string)
 		attachments := parseAttachments(descriptionHTML)
 
+		if attachmentsDownloadIncludeComments {
+			commentsResp, err := client.GetWithPagination("/cards/"+cardNumber+"/comments.json", true)
+			if err == nil {
+				if comments, ok := commentsResp.Data.([]interface{}); ok {
+					commentAttachments := extractCommentAttachments(comments)
+					for _, ca := range commentAttachments {
+						ca.Attachment.Index = len(attachments) + 1
+						attachments = append(attachments, ca.Attachment)
+					}
+				}
+			}
+		}
+
 		if len(attachments) == 0 {
 			exitWithError(errors.NewNotFoundError("No attachments found on this card"))
 		}
@@ -112,13 +149,8 @@ Use 'fizzy card attachments show CARD_NUMBER' to see available attachments and t
 
 		// Download the files
 		var results []map[string]interface{}
-		for _, attachment := range toDownload {
-			// Sanitize filename to prevent path traversal attacks
-			outputPath := filepath.Base(attachment.Filename)
-			// If downloading single file with custom output name
-			if len(toDownload) == 1 && attachmentDownloadOutput != "" {
-				outputPath = attachmentDownloadOutput
-			}
+		for i, attachment := range toDownload {
+			outputPath := buildOutputPath(attachmentDownloadOutput, attachment.Filename, i+1, len(toDownload))
 
 			if err := client.DownloadFile(attachment.DownloadURL, outputPath); err != nil {
 				exitWithError(err)
@@ -204,7 +236,21 @@ func parseAttachments(html string) []Attachment {
 		attachments = append(attachments, attachment)
 	}
 
-	return attachments
+	// Filter out non-downloadable entries (e.g. mentions) that have no filename or download URL
+	filtered := attachments[:0]
+	for _, a := range attachments {
+		if a.Filename == "" && a.DownloadURL == "" {
+			continue
+		}
+		filtered = append(filtered, a)
+	}
+
+	// Re-index after filtering
+	for i := range filtered {
+		filtered[i].Index = i + 1
+	}
+
+	return filtered
 }
 
 // extractAttr extracts an attribute value from an HTML attribute string
@@ -217,11 +263,31 @@ func extractAttr(attrs, name string) string {
 	return ""
 }
 
+// buildOutputPath determines the output filename for a download.
+// For a single file, outputFlag is used as the exact filename.
+// For multiple files, outputFlag is used as a prefix: prefix_1.ext, prefix_2.ext, etc.
+// If outputFlag is empty, the original filename is used (sanitized).
+func buildOutputPath(outputFlag, originalFilename string, index, total int) string {
+	safeName := filepath.Base(originalFilename)
+	if outputFlag == "" {
+		return safeName
+	}
+	if total == 1 {
+		return outputFlag
+	}
+	// Use as prefix: prefix_1.ext
+	ext := filepath.Ext(safeName)
+	prefix := strings.TrimSuffix(outputFlag, filepath.Ext(outputFlag))
+	return fmt.Sprintf("%s_%d%s", prefix, index, ext)
+}
+
 func init() {
 	cardCmd.AddCommand(attachmentsCmd)
 
+	attachmentsShowCmd.Flags().BoolVar(&attachmentsShowIncludeComments, "include-comments", false, "Also include attachments from comments")
 	attachmentsCmd.AddCommand(attachmentsShowCmd)
 
-	attachmentsDownloadCmd.Flags().StringVarP(&attachmentDownloadOutput, "output", "o", "", "Output filename (default: original filename, only applies when downloading single attachment)")
+	attachmentsDownloadCmd.Flags().StringVarP(&attachmentDownloadOutput, "output", "o", "", "Output filename (single file) or prefix (multiple files, e.g. -o test produces test_1.png)")
+	attachmentsDownloadCmd.Flags().BoolVar(&attachmentsDownloadIncludeComments, "include-comments", false, "Also include attachments from comments")
 	attachmentsCmd.AddCommand(attachmentsDownloadCmd)
 }
