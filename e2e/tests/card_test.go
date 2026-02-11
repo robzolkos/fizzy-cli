@@ -645,6 +645,91 @@ func TestCardCreateMissingTitle(t *testing.T) {
 	})
 }
 
+func TestCardHasAttachments(t *testing.T) {
+	h := harness.New(t)
+	defer h.Cleanup.CleanupAll(h)
+
+	boardID := createTestBoard(t, h)
+
+	t.Run("plain card has_attachments is false", func(t *testing.T) {
+		title := fmt.Sprintf("No Attachments Card %d", time.Now().UnixNano())
+		cardResult := h.Run("card", "create", "--board", boardID, "--title", title)
+		if cardResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to create card: %s\nstdout: %s", cardResult.Stderr, cardResult.Stdout)
+		}
+
+		cardNumber := cardResult.GetNumberFromLocation()
+		if cardNumber == 0 {
+			cardNumber = cardResult.GetDataInt("number")
+		}
+		if cardNumber == 0 {
+			t.Fatalf("failed to get card number (location: %s)", cardResult.GetLocation())
+		}
+		h.Cleanup.AddCard(cardNumber)
+		cardStr := strconv.Itoa(cardNumber)
+
+		showResult := h.Run("card", "show", cardStr)
+		if showResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to show card: %s", showResult.Stderr)
+		}
+
+		hasAttachments := showResult.GetDataBool("has_attachments")
+		if hasAttachments {
+			t.Error("expected has_attachments=false for a card with no attachments")
+		}
+	})
+
+	t.Run("card with inline attachment has_attachments is true", func(t *testing.T) {
+		// Get the path to the test image fixture
+		wd, _ := os.Getwd()
+		fixturePath := filepath.Join(wd, "..", "testdata", "fixtures", "test_image.png")
+
+		// Check if fixture exists
+		if _, err := os.Stat(fixturePath); os.IsNotExist(err) {
+			t.Skipf("test fixture not found at %s", fixturePath)
+		}
+
+		// Upload the file to get an attachable_sgid
+		uploadResult := h.Run("upload", "file", fixturePath)
+		if uploadResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to upload file: %s\nstdout: %s", uploadResult.Stderr, uploadResult.Stdout)
+		}
+
+		sgid := uploadResult.GetDataString("attachable_sgid")
+		if sgid == "" {
+			t.Fatalf("no attachable_sgid returned from upload\nstdout: %s", uploadResult.Stdout)
+		}
+
+		// Create a card with an inline attachment in the description
+		title := fmt.Sprintf("Attachment Card %d", time.Now().UnixNano())
+		description := fmt.Sprintf(`<p>See image:</p><action-text-attachment sgid="%s"></action-text-attachment>`, sgid)
+		cardResult := h.Run("card", "create", "--board", boardID, "--title", title, "--description", description)
+		if cardResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to create card with attachment: %s\nstdout: %s", cardResult.Stderr, cardResult.Stdout)
+		}
+
+		cardNumber := cardResult.GetNumberFromLocation()
+		if cardNumber == 0 {
+			cardNumber = cardResult.GetDataInt("number")
+		}
+		if cardNumber == 0 {
+			t.Fatalf("failed to get card number (location: %s)", cardResult.GetLocation())
+		}
+		h.Cleanup.AddCard(cardNumber)
+		cardStr := strconv.Itoa(cardNumber)
+
+		showResult := h.Run("card", "show", cardStr)
+		if showResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to show card: %s", showResult.Stderr)
+		}
+
+		hasAttachments := showResult.GetDataBool("has_attachments")
+		if !hasAttachments {
+			t.Error("expected has_attachments=true for a card with an inline attachment")
+		}
+	})
+}
+
 func TestCardImageRemove(t *testing.T) {
 	h := harness.New(t)
 	defer h.Cleanup.CleanupAll(h)
