@@ -287,6 +287,11 @@ fizzy card ungolden 42
 
 ### Card Attachments
 
+> **Tip:** Use `has_attachments` to check which cards have attachments before fetching them:
+> ```bash
+> fizzy card list | jq '[.data[] | select(.has_attachments) | {number, title}]'
+> ```
+
 ```bash
 # List attachments on a card
 fizzy card attachments show 42

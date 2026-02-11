@@ -146,6 +146,7 @@ Complete field reference for all resources. Use these exact field paths in jq qu
 | `closed` | boolean | true = card is closed |
 | `golden` | boolean | true = starred/important |
 | `image_url` | string/null | Header/background image URL |
+| `has_attachments` | boolean | true = card has file attachments |
 | `has_more_assignees` | boolean | More assignees than shown |
 | `created_at` | timestamp | ISO 8601 |
 | `last_active_at` | timestamp | ISO 8601 |
