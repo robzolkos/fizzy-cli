@@ -416,6 +416,9 @@ fizzy user show USER_ID
 fizzy user update USER_ID --name "New Name"
 fizzy user update USER_ID --avatar /path/to/avatar.jpg
 fizzy user update USER_ID --name "New Name" --avatar /path/to/avatar.jpg
+
+# Deactivate a user (requires admin/owner permissions)
+fizzy user deactivate USER_ID
 ```
 
 ### Tags

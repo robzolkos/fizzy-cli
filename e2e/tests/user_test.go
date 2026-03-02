@@ -261,3 +261,57 @@ func TestUserUpdate(t *testing.T) {
 		}
 	})
 }
+
+func TestUserDeactivate(t *testing.T) {
+	cfg := harness.LoadConfig()
+	if cfg.UserID == "" {
+		t.Skip("FIZZY_TEST_USER_ID not set, skipping user deactivate tests")
+	}
+
+	h := harness.New(t)
+	userID := cfg.UserID
+
+	t.Run("deactivate non-existent user returns not found", func(t *testing.T) {
+		result := h.Run("user", "deactivate", "non-existent-user-id-12345")
+
+		if result.ExitCode != harness.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d\nstdout: %s", harness.ExitNotFound, result.ExitCode, result.Stdout)
+		}
+
+		if result.Response == nil {
+			t.Fatal("expected JSON response")
+		}
+
+		if result.Response.Success {
+			t.Error("expected success=false")
+		}
+	})
+
+	t.Run("deactivates user", func(t *testing.T) {
+		// First verify the user exists
+		showResult := h.Run("user", "show", userID)
+		if showResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("test user %s not found, cannot test deactivate: %s", userID, showResult.Stderr)
+		}
+
+		result := h.Run("user", "deactivate", userID)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s\nstdout: %s", harness.ExitSuccess, result.ExitCode, result.Stderr, result.Stdout)
+		}
+
+		if result.Response == nil {
+			t.Fatal("expected JSON response")
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+
+		// Verify the user is no longer accessible
+		verifyResult := h.Run("user", "show", userID)
+		if verifyResult.ExitCode != harness.ExitNotFound {
+			t.Errorf("expected deactivated user to return not found, got exit code %d", verifyResult.ExitCode)
+		}
+	})
+}

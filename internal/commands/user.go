@@ -167,6 +167,34 @@ var userUpdateCmd = &cobra.Command{
 	},
 }
 
+var userDeactivateCmd = &cobra.Command{
+	Use:   "deactivate USER_ID",
+	Short: "Deactivate a user",
+	Long:  "Deactivates a user, removing their access to the account. Requires admin or owner permissions.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		userID := args[0]
+
+		client := getClient()
+		_, err := client.Delete("/users/" + userID + ".json")
+		if err != nil {
+			exitWithError(err)
+		}
+
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("people", "fizzy user list", "List users"),
+		}
+
+		printSuccessWithBreadcrumbs(map[string]interface{}{
+			"deactivated": true,
+		}, "", breadcrumbs)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(userCmd)
 
@@ -182,4 +210,7 @@ func init() {
 	userUpdateCmd.Flags().StringVar(&userUpdateName, "name", "", "User's display name")
 	userUpdateCmd.Flags().StringVar(&userUpdateAvatar, "avatar", "", "Path to avatar image file")
 	userCmd.AddCommand(userUpdateCmd)
+
+	// Deactivate
+	userCmd.AddCommand(userDeactivateCmd)
 }

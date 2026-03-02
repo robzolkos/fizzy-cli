@@ -174,3 +174,48 @@ func TestUserUpdate(t *testing.T) {
 		}
 	})
 }
+
+func TestUserDeactivate(t *testing.T) {
+	t.Run("deactivates user by ID", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.DeleteResponse = &client.APIResponse{
+			StatusCode: 204,
+			Data:       map[string]interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			userDeactivateCmd.Run(userDeactivateCmd, []string{"user-1"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if len(mock.DeleteCalls) != 1 {
+			t.Fatalf("expected 1 delete call, got %d", len(mock.DeleteCalls))
+		}
+		if mock.DeleteCalls[0].Path != "/users/user-1.json" {
+			t.Errorf("expected path '/users/user-1.json', got '%s'", mock.DeleteCalls[0].Path)
+		}
+	})
+
+	t.Run("returns not found for non-existent user", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.DeleteError = errors.NewNotFoundError("User not found")
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			userDeactivateCmd.Run(userDeactivateCmd, []string{"non-existent-user"})
+		})
+
+		if result.ExitCode != errors.ExitNotFound {
+			t.Errorf("expected exit code %d, got %d", errors.ExitNotFound, result.ExitCode)
+		}
+	})
+}
