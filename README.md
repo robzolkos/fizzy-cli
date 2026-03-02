@@ -266,6 +266,9 @@ fizzy card untriage 42
 # Assign/unassign (toggles)
 fizzy card assign 42 --user USER_ID
 
+# Self-assign/unassign (toggles current user)
+fizzy card self-assign 42
+
 # Tag/untag (toggles, creates tag if needed)
 fizzy card tag 42 --tag "bug"
 

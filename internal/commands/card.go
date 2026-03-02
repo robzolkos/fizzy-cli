@@ -746,6 +746,36 @@ var cardAssignCmd = &cobra.Command{
 	},
 }
 
+var cardSelfAssignCmd = &cobra.Command{
+	Use:   "self-assign CARD_NUMBER",
+	Short: "Toggle self-assignment on a card",
+	Long:  "Toggles the current user's assignment on a card.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := requireAuthAndAccount(); err != nil {
+			exitWithError(err)
+		}
+
+		cardNumber := args[0]
+
+		client := getClient()
+		resp, err := client.Post("/cards/"+cardNumber+"/self_assignment.json", nil)
+		if err != nil {
+			exitWithError(err)
+		}
+
+		breadcrumbs := []response.Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy card show %s", cardNumber), "View card"),
+		}
+
+		data := resp.Data
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		printSuccessWithBreadcrumbs(data, "", breadcrumbs)
+	},
+}
+
 // Card tag flags
 var cardTagTag string
 
@@ -1080,6 +1110,9 @@ func init() {
 	// Assign
 	cardAssignCmd.Flags().StringVar(&cardAssignUser, "user", "", "User ID (required)")
 	cardCmd.AddCommand(cardAssignCmd)
+
+	// Self-assign
+	cardCmd.AddCommand(cardSelfAssignCmd)
 
 	// Tag
 	cardTagCmd.Flags().StringVar(&cardTagTag, "tag", "", "Tag name (required)")

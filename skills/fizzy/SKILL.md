@@ -534,6 +534,7 @@ fizzy card untriage CARD_NUMBER        # Remove from column, back to triage
 fizzy card column CARD_NUMBER --column ID     # Move to column (use column ID or: maybe, not-yet, done)
 fizzy card move CARD_NUMBER --to BOARD_ID     # Move card to a different board
 fizzy card assign CARD_NUMBER --user ID       # Toggle user assignment
+fizzy card self-assign CARD_NUMBER            # Toggle current user's assignment
 fizzy card tag CARD_NUMBER --tag "name"       # Toggle tag (creates tag if needed)
 fizzy card watch CARD_NUMBER                  # Subscribe to notifications
 fizzy card unwatch CARD_NUMBER                # Unsubscribe
@@ -713,7 +714,10 @@ fizzy card create --board BOARD_ID --title "Card" --image "$SIGNED_ID"
 # Move to a column
 fizzy card column 579 --column maybe
 
-# Assign to user
+# Assign to yourself
+fizzy card self-assign 579
+
+# Or assign to another user
 fizzy card assign 579 --user USER_ID
 
 # Mark as golden (important)

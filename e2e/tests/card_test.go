@@ -482,6 +482,30 @@ func TestCardActions(t *testing.T) {
 		}
 	})
 
+	t.Run("self-assign card", func(t *testing.T) {
+		result := h.Run("card", "self-assign", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+	})
+
+	t.Run("self-assign card again to unassign", func(t *testing.T) {
+		result := h.Run("card", "self-assign", cardStr)
+
+		if result.ExitCode != harness.ExitSuccess {
+			t.Errorf("expected exit code %d, got %d\nstderr: %s", harness.ExitSuccess, result.ExitCode, result.Stderr)
+		}
+
+		if !result.Response.Success {
+			t.Errorf("expected success=true, error: %+v", result.Response.Error)
+		}
+	})
+
 	t.Run("golden card", func(t *testing.T) {
 		result := h.Run("card", "golden", cardStr)
 

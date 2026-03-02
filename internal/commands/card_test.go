@@ -907,6 +907,31 @@ func TestCardAssign(t *testing.T) {
 	})
 }
 
+func TestCardSelfAssign(t *testing.T) {
+	t.Run("self-assigns card", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.PostResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       map[string]interface{}{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		RunTestCommand(func() {
+			cardSelfAssignCmd.Run(cardSelfAssignCmd, []string{"42"})
+		})
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if mock.PostCalls[0].Path != "/cards/42/self_assignment.json" {
+			t.Errorf("expected path '/cards/42/self_assignment.json', got '%s'", mock.PostCalls[0].Path)
+		}
+	})
+}
+
 func TestCardTag(t *testing.T) {
 	t.Run("tags card", func(t *testing.T) {
 		mock := NewMockClient()
