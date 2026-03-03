@@ -1,0 +1,12 @@
+{
+  "name": "fizzy",
+  "version": "0.1.0",
+  "description": "Fizzy integration for Claude Code. Manage boards, cards, track work, and link code to projects.",
+  "author": {
+    "name": "37signals",
+    "email": "support@37signals.com"
+  },
+  "homepage": "https://github.com/basecamp/fizzy-cli",
+  "repository": "https://github.com/basecamp/fizzy-cli",
+  "license": "MIT"
+}
