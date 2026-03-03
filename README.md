@@ -1,4 +1,4 @@
-# Fizzy CLI
+# <img src="assets/fizzy-badge.png" height="28" alt="Fizzy"> Fizzy CLI
 
 `fizzy` is a command-line interface for [Fizzy](https://fizzy.do). Manage boards, cards, comments, and more from your terminal or through AI agents.
 
