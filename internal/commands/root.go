@@ -101,7 +101,7 @@ func Execute() {
 			// Cobra-level errors (arg count, unknown flag) → usage
 			e = &output.Error{Code: output.CodeUsage, Message: err.Error()}
 		}
-		out.Err(e)
+		_ = out.Err(e)
 		os.Exit(e.ExitCode())
 	}
 }
@@ -226,20 +226,20 @@ func captureResponse() {
 	}
 	lastRawOutput = testBuf.String()
 	var resp output.Response
-	json.Unmarshal(testBuf.Bytes(), &resp)
+	_ = json.Unmarshal(testBuf.Bytes(), &resp)
 	lastResult.Response = &resp
 	testBuf.Reset()
 }
 
 // printSuccess prints a success response.
 func printSuccess(data interface{}) {
-	out.OK(data)
+	_ = out.OK(data)
 	captureResponse()
 }
 
 // printSuccessWithLocation prints a success response with location.
 func printSuccessWithLocation(location string) {
-	out.OK(nil, output.WithContext("location", location))
+	_ = out.OK(nil, output.WithContext("location", location))
 	captureResponse()
 }
 
@@ -254,7 +254,7 @@ func printSuccessWithBreadcrumbs(data interface{}, summary string, breadcrumbs [
 	if summary != "" {
 		opts = append(opts, output.WithSummary(summary))
 	}
-	out.OK(data, opts...)
+	_ = out.OK(data, opts...)
 	captureResponse()
 }
 
@@ -270,13 +270,13 @@ func printSuccessWithPaginationAndBreadcrumbs(data interface{}, hasNext bool, ne
 			"next_url": nextURL,
 		}))
 	}
-	out.OK(data, opts...)
+	_ = out.OK(data, opts...)
 	captureResponse()
 }
 
 // printSuccessWithLocationAndBreadcrumbs prints a success response with both location and breadcrumbs.
 func printSuccessWithLocationAndBreadcrumbs(data interface{}, location string, breadcrumbs []Breadcrumb) {
-	out.OK(data,
+	_ = out.OK(data,
 		output.WithBreadcrumbs(breadcrumbs...),
 		output.WithContext("location", location),
 	)

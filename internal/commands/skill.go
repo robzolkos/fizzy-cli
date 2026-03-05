@@ -84,7 +84,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 
 	if err != nil {
 		fmt.Println("Installation cancelled.")
-		return nil
+		return nil //nolint:nilerr // user cancelled prompt
 	}
 
 	// Handle custom path
@@ -104,7 +104,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 
 		if err != nil {
 			fmt.Println("Installation cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled prompt
 		}
 
 		// Smart path handling
@@ -124,7 +124,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 
 		if err != nil || !overwrite {
 			fmt.Println("Installation cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled or declined overwrite
 		}
 	}
 

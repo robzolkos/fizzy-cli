@@ -58,7 +58,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 		if err != nil {
 			fmt.Println("Setup cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled prompt
 		}
 
 		if !reconfigure {
@@ -80,7 +80,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 	if err != nil {
 		fmt.Println("Setup cancelled.")
-		return nil
+		return nil //nolint:nilerr // user cancelled prompt
 	}
 
 	apiURL := config.DefaultAPIURL
@@ -102,7 +102,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 		if err != nil {
 			fmt.Println("Setup cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled prompt
 		}
 	}
 
@@ -127,7 +127,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 		if err != nil {
 			fmt.Println("Setup cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled prompt
 		}
 
 		// Validate token
@@ -176,7 +176,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 		if err != nil {
 			fmt.Println("Setup cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled prompt
 		}
 	}
 
@@ -209,7 +209,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 		if err != nil {
 			fmt.Println("Setup cancelled.")
-			return nil
+			return nil //nolint:nilerr // user cancelled prompt
 		}
 	}
 
@@ -226,7 +226,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 	if err != nil {
 		fmt.Println("Setup cancelled.")
-		return nil
+		return nil //nolint:nilerr // user cancelled prompt
 	}
 
 	// Build and save config
