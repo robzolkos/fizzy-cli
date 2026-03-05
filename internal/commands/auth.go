@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/basecamp/cli/output"
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"github.com/spf13/cobra"
@@ -14,18 +17,30 @@ var authCmd = &cobra.Command{
 
 var authLoginCmd = &cobra.Command{
 	Use:   "login TOKEN",
-	Short: "Save API token to config file",
-	Long:  "Saves the provided API token to ~/.config/fizzy/config.yaml for future use.",
+	Short: "Save API token",
+	Long:  "Saves the provided API token to the system keyring (or fallback file).",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		token := args[0]
 
-		// Load existing config or create new
-		globalCfg := config.LoadGlobal()
-		globalCfg.Token = token
+		if creds != nil {
+			if err := credsSaveToken(token); err != nil {
+				return &output.Error{Code: output.CodeAPI, Message: err.Error()}
+			}
 
-		if err := globalCfg.Save(); err != nil {
-			return &output.Error{Code: output.CodeAPI, Message: err.Error()}
+			// Clear token from global YAML config if present (migration)
+			globalCfg := config.LoadGlobal()
+			if globalCfg.Token != "" {
+				globalCfg.Token = ""
+				_ = globalCfg.Save()
+			}
+		} else {
+			// Fallback: save to config file (test mode or credstore unavailable)
+			globalCfg := config.LoadGlobal()
+			globalCfg.Token = token
+			if err := globalCfg.Save(); err != nil {
+				return &output.Error{Code: output.CodeAPI, Message: err.Error()}
+			}
 		}
 
 		// Build breadcrumbs
@@ -35,10 +50,19 @@ var authLoginCmd = &cobra.Command{
 			breadcrumb("boards", "fizzy board list", "List boards"),
 		}
 
-		printMutation(map[string]any{
+		result := map[string]any{
 			"authenticated": true,
-			"message":       "Token saved to config file",
-		}, "", breadcrumbs)
+			"message":       "Token saved",
+		}
+		if creds != nil {
+			if creds.UsingKeyring() {
+				result["storage"] = "keyring"
+			} else {
+				result["storage"] = "file"
+			}
+		}
+
+		printMutation(result, "", breadcrumbs)
 		return nil
 	},
 }
@@ -46,8 +70,16 @@ var authLoginCmd = &cobra.Command{
 var authLogoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Remove saved credentials",
-	Long:  "Removes the config file containing saved credentials.",
+	Long:  "Removes saved credentials from keyring and config file.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Delete from credstore
+		if creds != nil {
+			if err := creds.Delete("token"); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: could not remove token from credential store: %v\n", err)
+			}
+		}
+
+		// Also clear any token in config file
 		if err := config.Delete(); err != nil {
 			return &output.Error{Code: output.CodeAPI, Message: err.Error()}
 		}
@@ -86,6 +118,13 @@ var authStatusCmd = &cobra.Command{
 			}
 			if effectiveCfg.APIURL != "" && effectiveCfg.APIURL != config.DefaultAPIURL {
 				status["api_url"] = effectiveCfg.APIURL
+			}
+		}
+
+		if creds != nil {
+			status["using_keyring"] = creds.UsingKeyring()
+			if w := creds.FallbackWarning(); w != "" {
+				status["credential_warning"] = w
 			}
 		}
 
