@@ -438,7 +438,8 @@ func runSignupComplete(cmd *cobra.Command, args []string) error {
 			return errors.NewError(fmt.Sprintf("Failed to fetch account: %v", err))
 		}
 
-		accounts, err := parseAccounts(identityData)
+		var accounts []Account
+		accounts, err = parseAccounts(identityData)
 		if err != nil || len(accounts) == 0 {
 			return errors.NewError("No accounts found after signup")
 		}
