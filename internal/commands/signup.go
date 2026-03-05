@@ -8,6 +8,7 @@ import (
 	stderrors "errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -102,10 +103,7 @@ func runSignup(cmd *cobra.Command, args []string) error {
 				if s == "" {
 					return fmt.Errorf("URL is required")
 				}
-				if !strings.HasPrefix(s, "http://") && !strings.HasPrefix(s, "https://") {
-					return fmt.Errorf("URL must start with http:// or https://")
-				}
-				return nil
+				return validateSignupURL(s)
 			}).
 			Run()
 
@@ -499,11 +497,18 @@ func signupAPIURL() string {
 }
 
 // newSignupHTTPClient creates an HTTP client with a cookie jar for session-based auth.
+// Redirects are validated to prevent SSRF via open redirectors.
 func newSignupHTTPClient() *http.Client {
 	jar, _ := cookiejar.New(nil)
 	return &http.Client{
 		Timeout: 30 * time.Second,
 		Jar:     jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			return validateSignupURL(req.URL.String())
+		},
 	}
 }
 
@@ -518,6 +523,10 @@ func (e *signupHTTPError) Error() string { return e.message }
 
 // signupPost makes a JSON POST request and returns the parsed response body and headers.
 func signupPost(client *http.Client, reqURL string, body any) (map[string]any, http.Header, error) {
+	if err := validateSignupURL(reqURL); err != nil {
+		return nil, nil, err
+	}
+
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal body: %w", err)
@@ -576,6 +585,10 @@ func signupPost(client *http.Client, reqURL string, body any) (map[string]any, h
 
 // signupGet makes a GET request and returns the parsed response body.
 func signupGet(client *http.Client, reqURL string) (map[string]any, error) {
+	if err := validateSignupURL(reqURL); err != nil {
+		return nil, err
+	}
+
 	req, err := http.NewRequestWithContext(context.Background(), "GET", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -620,6 +633,40 @@ func setSignedCookie(client *http.Client, apiURL, name, value string) {
 	client.Jar.SetCookies(u, []*http.Cookie{
 		{Name: name, Value: value},
 	})
+}
+
+// validateSignupURL checks that a URL is safe to use for signup HTTP requests.
+// Only http:// and https:// schemes are allowed. Plain http:// is restricted to
+// loopback addresses (localhost, 127.0.0.1, [::1]) to prevent SSRF against
+// internal network services.
+func validateSignupURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	switch u.Scheme {
+	case "https":
+		return nil
+	case "http":
+		host := u.Hostname()
+		if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+			return nil
+		}
+		// Resolve the hostname to check for loopback IPs
+		resolver := &net.Resolver{}
+		ips, err := resolver.LookupHost(context.Background(), host)
+		if err == nil {
+			for _, ip := range ips {
+				if net.ParseIP(ip).IsLoopback() {
+					return nil
+				}
+			}
+		}
+		return fmt.Errorf("http:// is only allowed for localhost; use https:// for remote hosts")
+	default:
+		return fmt.Errorf("unsupported URL scheme %q; use https://", u.Scheme)
+	}
 }
 
 // normalizeAccountSlugs strips leading "/" from account slugs in the identity response

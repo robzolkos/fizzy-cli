@@ -638,6 +638,58 @@ func TestNormalizeAccountSlugs(t *testing.T) {
 	})
 }
 
+func TestValidateSignupURL(t *testing.T) {
+	t.Run("allows https URLs", func(t *testing.T) {
+		if err := validateSignupURL("https://app.fizzy.do/session.json"); err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("allows http localhost", func(t *testing.T) {
+		for _, u := range []string{
+			"http://localhost:3000/session.json",
+			"http://127.0.0.1:3000/session.json",
+			"http://[::1]:3000/session.json",
+		} {
+			if err := validateSignupURL(u); err != nil {
+				t.Errorf("expected no error for %s, got %v", u, err)
+			}
+		}
+	})
+
+	t.Run("rejects http non-localhost", func(t *testing.T) {
+		err := validateSignupURL("http://169.254.169.254/latest/meta-data/")
+		if err == nil {
+			t.Error("expected error for http:// to non-localhost")
+		}
+	})
+
+	t.Run("rejects non-http schemes", func(t *testing.T) {
+		for _, u := range []string{"file:///etc/passwd", "ftp://example.com", "gopher://example.com"} {
+			if err := validateSignupURL(u); err == nil {
+				t.Errorf("expected error for %s", u)
+			}
+		}
+	})
+}
+
+func TestSignupClientRejectsSSRFRedirect(t *testing.T) {
+	t.Run("rejects redirect to disallowed http target", func(t *testing.T) {
+		// Origin server redirects to a non-localhost HTTP URL (SSRF target).
+		// CheckRedirect rejects the redirect before the request is made.
+		origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "http://169.254.169.254/latest/meta-data/", http.StatusFound)
+		}))
+		defer origin.Close()
+
+		client := newSignupHTTPClient()
+		_, err := signupGet(client, origin.URL+"/start")
+		if err == nil {
+			t.Fatal("expected error from redirect to disallowed target")
+		}
+	})
+}
+
 func TestGetCookieValue(t *testing.T) {
 	t.Run("returns empty string for missing cookie", func(t *testing.T) {
 		client := newSignupHTTPClient()
