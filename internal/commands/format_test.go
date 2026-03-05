@@ -272,6 +272,11 @@ func TestFormatFlagsRegistered(t *testing.T) {
 // Integration tests: exercise full Cobra arg parsing → PersistentPreRunE → command output.
 
 func runCobraWithArgs(args ...string) (string, error) {
+	// Reset format flags to prevent leaking between calls.
+	cfgJSON = false
+	cfgQuiet = false
+	cfgIDsOnly = false
+	cfgCount = false
 	testBuf.Reset()
 	lastRawOutput = ""
 	out = output.New(output.Options{Format: output.FormatJSON, Writer: &testBuf})

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/basecamp/cli/output"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +54,7 @@ PowerShell:
 			err = cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
 		}
 		if err != nil {
-			return fmt.Errorf("generating %s completions: %w", args[0], err)
+			return &output.Error{Code: output.CodeAPI, Message: fmt.Sprintf("generating %s completions: %v", args[0], err)}
 		}
 		return nil
 	},

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/basecamp/cli/output"
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +25,7 @@ var authLoginCmd = &cobra.Command{
 		globalCfg.Token = token
 
 		if err := globalCfg.Save(); err != nil {
-			return err
+			return &output.Error{Code: output.CodeAPI, Message: err.Error()}
 		}
 
 		// Build breadcrumbs
@@ -48,7 +49,7 @@ var authLogoutCmd = &cobra.Command{
 	Long:  "Removes the config file containing saved credentials.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := config.Delete(); err != nil {
-			return err
+			return &output.Error{Code: output.CodeAPI, Message: err.Error()}
 		}
 
 		// Build breadcrumbs

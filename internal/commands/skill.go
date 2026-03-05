@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/basecamp/cli/output"
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 )
@@ -133,7 +134,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 	content, err := downloadSkillFile()
 	if err != nil {
 		fmt.Println("✗")
-		return fmt.Errorf("Error downloading skill file: %w", err)
+		return &output.Error{Code: output.CodeAPI, Message: fmt.Sprintf("downloading skill file: %v", err)}
 	}
 	fmt.Println("✓")
 
@@ -141,7 +142,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 	err = installSkillFile(expandedPath, content)
 	if err != nil {
 		fmt.Println("✗")
-		return fmt.Errorf("Error installing skill file: %w", err)
+		return &output.Error{Code: output.CodeAPI, Message: fmt.Sprintf("installing skill file: %v", err)}
 	}
 	fmt.Println("✓")
 

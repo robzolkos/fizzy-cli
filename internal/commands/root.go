@@ -226,8 +226,9 @@ func captureResponse() {
 	}
 	lastRawOutput = testBuf.String()
 	var resp output.Response
-	_ = json.Unmarshal(testBuf.Bytes(), &resp)
-	lastResult.Response = &resp
+	if json.Unmarshal(testBuf.Bytes(), &resp) == nil {
+		lastResult.Response = &resp
+	}
 	testBuf.Reset()
 }
 
