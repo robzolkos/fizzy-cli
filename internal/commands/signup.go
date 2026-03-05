@@ -422,7 +422,7 @@ func runSignupComplete(cmd *cobra.Command, args []string) error {
 
 	if name != "" {
 		// New user: complete signup first
-		_, _, err := signupPost(httpClient, apiURL+"/signup/completion.json", map[string]any{
+		_, _, err = signupPost(httpClient, apiURL+"/signup/completion.json", map[string]any{
 			"signup": map[string]any{
 				"full_name": name,
 			},
@@ -432,7 +432,8 @@ func runSignupComplete(cmd *cobra.Command, args []string) error {
 		}
 
 		// Fetch the new account
-		identityData, err := signupGet(httpClient, apiURL+"/my/identity.json")
+		var identityData map[string]any
+		identityData, err = signupGet(httpClient, apiURL+"/my/identity.json")
 		if err != nil {
 			return errors.NewError(fmt.Sprintf("Failed to fetch account: %v", err))
 		}
