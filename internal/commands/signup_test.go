@@ -143,7 +143,10 @@ func pipeSessionToken(token string) func() {
 	w.Close()
 	origStdin := os.Stdin
 	os.Stdin = r
-	return func() { os.Stdin = origStdin }
+	return func() {
+		os.Stdin = origStdin
+		r.Close()
+	}
 }
 
 // resetSignupFlags clears cobra flag values between test runs to prevent cross-contamination.

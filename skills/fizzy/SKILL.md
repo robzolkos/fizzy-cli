@@ -229,7 +229,7 @@ rm /tmp/fizzy-session
 
 **Note:** The user must check their email for the 6-digit code between steps 1 and 2.
 The session token is written to a temp file and piped via stdin to avoid exposing it in shell history or the agent's conversation context.
-Token and account are automatically saved to ~/.config/fizzy/config.yaml.
+Token is saved to the system credential store when available, with ~/.config/fizzy/config.yaml as fallback. Account and API URL are always saved to the config file.
 
 ---
 

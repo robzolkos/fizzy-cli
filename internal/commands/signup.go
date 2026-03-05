@@ -310,7 +310,7 @@ func runSignup(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println()
-	fmt.Println("✓ Configuration saved to ~/.config/fizzy/config.yaml")
+	fmt.Println("✓ Configuration saved.")
 	fmt.Println()
 	fmt.Println("You're all set! Try: fizzy board list")
 	return nil
@@ -486,7 +486,7 @@ func runSignupComplete(cmd *cobra.Command, args []string) error {
 	printSuccessWithBreadcrumbs(map[string]any{
 		"token":   token,
 		"account": accountSlug,
-	}, "Token saved to ~/.config/fizzy/config.yaml", breadcrumbs)
+	}, "Configuration saved.", breadcrumbs)
 	return nil
 }
 
@@ -631,7 +631,7 @@ func setSessionCookie(client *http.Client, apiURL, sessionToken string) {
 		return
 	}
 	client.Jar.SetCookies(u, []*http.Cookie{
-		{Name: "session_token", Value: sessionToken, Secure: true, HttpOnly: true},
+		{Name: "session_token", Value: sessionToken, Secure: u.Scheme == "https", HttpOnly: true},
 	})
 }
 
@@ -642,7 +642,7 @@ func setSignedCookie(client *http.Client, apiURL, name, value string) {
 		return
 	}
 	client.Jar.SetCookies(u, []*http.Cookie{
-		{Name: name, Value: value, Secure: true, HttpOnly: true},
+		{Name: name, Value: value, Secure: u.Scheme == "https", HttpOnly: true},
 	})
 }
 
