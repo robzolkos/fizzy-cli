@@ -97,7 +97,7 @@ Every command returns structured JSON:
 
 ```json
 {
-  "success": true,
+  "ok": true,
   "data": [...],
   "summary": "5 boards",
   "breadcrumbs": [{"action": "show", "cmd": "fizzy board show <id>"}]

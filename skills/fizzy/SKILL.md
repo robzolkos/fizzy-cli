@@ -191,12 +191,12 @@ All responses follow this structure:
 
 ```json
 {
-  "success": true,
+  "ok": true,
   "data": { ... },           // Single object or array
   "summary": "4 boards",     // Human-readable description
   "breadcrumbs": [ ... ],    // Contextual next actions (omitted when empty)
+  "context": { ... },        // Location, pagination, and other context (omitted when empty)
   "meta": {
-    "timestamp": "2026-01-12T21:21:48Z"
   }
 }
 ```
@@ -214,14 +214,15 @@ All responses follow this structure:
 **List responses with pagination:**
 ```json
 {
-  "success": true,
+  "ok": true,
   "data": [ ... ],
   "summary": "10 cards (page 1)",
-  "pagination": {
-    "has_next": true,
-    "next_url": "https://..."
-  },
-  "meta": { ... }
+  "context": {
+    "pagination": {
+      "has_next": true,
+      "next_url": "https://..."
+    }
+  }
 }
 ```
 
@@ -250,10 +251,11 @@ Use breadcrumbs to discover available actions without memorizing the full CLI. V
 **Create/update responses include location:**
 ```json
 {
-  "success": true,
+  "ok": true,
   "data": { ... },
-  "location": "/6102600/cards/579.json",
-  "meta": { ... }
+  "context": {
+    "location": "/6102600/cards/579.json"
+  }
 }
 ```
 
@@ -921,13 +923,10 @@ Card descriptions and comments support HTML. For multiple paragraphs with spacin
 **Error response format:**
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "Not Found",
-    "status": 404
-  },
-  "meta": { ... }
+  "ok": false,
+  "error": "Not Found",
+  "code": "not_found",
+  "hint": "optional context"
 }
 ```
 
@@ -936,13 +935,14 @@ Card descriptions and comments support HTML. For multiple paragraphs with spacin
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | General error |
-| 2 | Invalid arguments |
+| 1 | Usage / invalid arguments |
+| 2 | Not found |
 | 3 | Authentication failure |
 | 4 | Permission denied |
-| 5 | Not found |
-| 6 | Validation error |
-| 7 | Network error |
+| 5 | Rate limited |
+| 6 | Network error |
+| 7 | API / server error |
+| 8 | Ambiguous match |
 
 **Authentication errors (exit 3):**
 ```bash
