@@ -212,17 +212,23 @@ fizzy signup verify --code ABC123 --pending-token eyJ...
 # Returns: {"session_token": "eyJ...", "requires_signup_completion": true/false}
 # For existing users (requires_signup_completion=false), also returns: "accounts": [{"name": "...", "slug": "..."}]
 
-# Step 3a: New user — complete signup (session token via stdin)
-echo "eyJ..." | fizzy signup complete --name "Full Name"
+# Step 3: Write the session token to a temp file to keep it out of the agent session
+echo "eyJ..." > /tmp/fizzy-session && chmod 600 /tmp/fizzy-session
+
+# Step 4a: New user — complete signup (session token via stdin)
+fizzy signup complete --name "Full Name" < /tmp/fizzy-session
 # Returns: {"token": "fizzy_...", "account": "slug"}
 
-# Step 3b: Existing user — generate token for an account
-echo "eyJ..." | fizzy signup complete --account SLUG
+# Step 4b: Existing user — generate token for an account
+fizzy signup complete --account SLUG < /tmp/fizzy-session
 # Returns: {"token": "fizzy_...", "account": "slug"}
+
+# Step 5: Clean up the temp file
+rm /tmp/fizzy-session
 ```
 
 **Note:** The user must check their email for the 6-digit code between steps 1 and 2.
-The session token is read from stdin (pipe or interactive prompt) to avoid exposing it in shell history.
+The session token is written to a temp file and piped via stdin to avoid exposing it in shell history or the agent's conversation context.
 Token and account are automatically saved to ~/.config/fizzy/config.yaml.
 
 ---
