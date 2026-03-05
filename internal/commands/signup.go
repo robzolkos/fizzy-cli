@@ -366,8 +366,7 @@ func runSignupVerify(cmd *cobra.Command, args []string) error {
 	setSignedCookie(httpClient, apiURL, "pending_authentication_token", pendingToken)
 
 	data, _, err := signupPost(httpClient, apiURL+"/session/magic_link.json", map[string]any{
-		"code":                         code,
-		"pending_authentication_token": pendingToken,
+		"code": code,
 	})
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("Failed to verify code: %v", err))
