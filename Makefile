@@ -1,6 +1,7 @@
 .PHONY: test test-unit test-e2e test-go test-file test-run build clean tidy help \
 	check-toolchain fmt fmt-check vet lint tidy-check race-test vuln secrets \
-	replace-check security check release-check release tools
+	replace-check security check release-check release tools \
+	surface-snapshot surface-check
 
 BINARY := $(CURDIR)/bin/fizzy
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -170,6 +171,14 @@ tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 	@echo "For gitleaks, install via: brew install gitleaks (or see https://github.com/gitleaks/gitleaks)"
+
+# Regenerate SURFACE.txt
+surface-snapshot:
+	GENERATE_SURFACE=1 go test ./internal/commands/ -run TestGenerateSurfaceSnapshot -v
+
+# CI check: SURFACE.txt is up to date
+surface-check:
+	go test ./internal/commands/ -run TestSurfaceSnapshot -v
 
 # Clean build artifacts
 clean:
