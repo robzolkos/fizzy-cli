@@ -71,8 +71,7 @@ func SetVersion(v string) {
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		var cliErr *errors.CLIError
-		if stderrors.As(err, &cliErr) {
+		if cliErr, ok := stderrors.AsType[*errors.CLIError](err); ok {
 			response.Error(cliErr).PrintAndExit()
 		}
 		response.Error(errors.NewError(err.Error())).PrintAndExit()
@@ -158,8 +157,7 @@ type testExitSignal struct{}
 // exitWithError prints an error response and exits.
 func exitWithError(err error) {
 	var resp *response.Response
-	var cliErr *errors.CLIError
-	if stderrors.As(err, &cliErr) {
+	if cliErr, ok := stderrors.AsType[*errors.CLIError](err); ok {
 		resp = response.Error(cliErr)
 	} else {
 		resp = response.Error(errors.NewError(err.Error()))

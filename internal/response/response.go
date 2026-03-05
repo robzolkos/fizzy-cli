@@ -171,8 +171,7 @@ func Error(err *errors.CLIError) *Response {
 
 // ErrorFromError creates an error response from a generic error.
 func ErrorFromError(err error) *Response {
-	var cliErr *errors.CLIError
-	if stderrors.As(err, &cliErr) {
+	if cliErr, ok := stderrors.AsType[*errors.CLIError](err); ok {
 		return Error(cliErr)
 	}
 	return Error(errors.NewError(err.Error()))
