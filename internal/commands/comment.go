@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/basecamp/fizzy-cli/internal/response"
 	"github.com/spf13/cobra"
@@ -35,7 +36,7 @@ var commentListCmd = &cobra.Command{
 		client := getClient()
 		path := "/cards/" + commentListCard + "/comments.json"
 		if commentListPage > 0 {
-			path += "?page=" + string(rune(commentListPage+'0'))
+			path += "?page=" + strconv.Itoa(commentListPage)
 		}
 
 		resp, err := client.GetWithPagination(path, commentListAll)

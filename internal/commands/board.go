@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/basecamp/fizzy-cli/internal/errors"
 	"github.com/basecamp/fizzy-cli/internal/response"
@@ -31,7 +32,7 @@ var boardListCmd = &cobra.Command{
 		client := getClient()
 		path := "/boards.json"
 		if boardListPage > 0 {
-			path += "?page=" + string(rune(boardListPage+'0'))
+			path += "?page=" + strconv.Itoa(boardListPage)
 		}
 
 		resp, err := client.GetWithPagination(path, boardListAll)

@@ -36,6 +36,34 @@ func TestCommentList(t *testing.T) {
 		}
 	})
 
+	t.Run("handles double-digit page numbers", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []any{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		commentListCard = "42"
+		commentListPage = 12
+		commentListAll = false
+		RunTestCommand(func() {
+			commentListCmd.Run(commentListCmd, []string{})
+		})
+		commentListCard = ""
+		commentListPage = 0
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if mock.GetWithPaginationCalls[0].Path != "/cards/42/comments.json?page=12" {
+			t.Errorf("expected path '/cards/42/comments.json?page=12', got '%s'", mock.GetWithPaginationCalls[0].Path)
+		}
+	})
+
 	t.Run("requires card flag", func(t *testing.T) {
 		mock := NewMockClient()
 		result := SetTestMode(mock)

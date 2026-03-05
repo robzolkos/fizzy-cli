@@ -64,6 +64,32 @@ func TestBoardList(t *testing.T) {
 		}
 	})
 
+	t.Run("handles double-digit page numbers", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []any{},
+		}
+
+		result := SetTestMode(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer ResetTestMode()
+
+		boardListPage = 12
+		boardListAll = false
+		RunTestCommand(func() {
+			boardListCmd.Run(boardListCmd, []string{})
+		})
+		boardListPage = 0
+
+		if result.ExitCode != 0 {
+			t.Errorf("expected exit code 0, got %d", result.ExitCode)
+		}
+		if mock.GetWithPaginationCalls[0].Path != "/boards.json?page=12" {
+			t.Errorf("expected path '/boards.json?page=12', got '%s'", mock.GetWithPaginationCalls[0].Path)
+		}
+	})
+
 	t.Run("requires authentication", func(t *testing.T) {
 		mock := NewMockClient()
 		result := SetTestMode(mock)
