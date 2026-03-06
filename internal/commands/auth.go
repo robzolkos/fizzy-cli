@@ -340,6 +340,8 @@ var authSwitchCmd = &cobra.Command{
 			if creds != nil {
 				if t, err := credsLoadProfileToken(profileName); err == nil {
 					cfg.Token = t
+				} else if t, err := credsLoadLegacyToken(profileName); err == nil {
+					cfg.Token = t
 				}
 			}
 

@@ -798,7 +798,7 @@ func ensureProfile(name, baseURL, board string) {
 	}
 	if board != "" {
 		p.Extra = map[string]json.RawMessage{
-			"board": json.RawMessage(`"` + board + `"`),
+			"board": func() json.RawMessage { b, _ := json.Marshal(board); return b }(),
 		}
 	}
 
