@@ -7,37 +7,30 @@ import (
 	"testing"
 
 	"github.com/basecamp/cli/credstore"
+	"github.com/basecamp/cli/profile"
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
 func TestAuthLogin(t *testing.T) {
 	t.Run("saves token to config file", func(t *testing.T) {
-		// Create temp directory for config
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		tempDir := t.TempDir()
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
 		mock := NewMockClient()
 		result := SetTestMode(mock)
+		SetTestConfig("", "test-account", "https://app.fizzy.do")
 		defer ResetTestMode()
 
-		err = authLoginCmd.RunE(authLoginCmd, []string{"test-token-123"})
+		err := authLoginCmd.RunE(authLoginCmd, []string{"test-token-123"})
 		assertExitCode(t, err, 0)
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
 		if !result.Response.OK {
 			t.Error("expected success response")
 		}
 
-		// Verify config file was created with correct token
+		// Verify config file was created with correct account
 		configPath := filepath.Join(tempDir, "config.yaml")
 		data, err := os.ReadFile(configPath)
 		if err != nil {
@@ -54,14 +47,14 @@ func TestAuthLogin(t *testing.T) {
 		}
 	})
 
-	t.Run("saves token to credstore when available", func(t *testing.T) {
+	t.Run("saves token to credstore under profile-scoped key", func(t *testing.T) {
 		tempDir := t.TempDir()
 		configDir := t.TempDir()
+		profileDir := t.TempDir()
 
 		config.SetTestConfigDir(configDir)
 		defer config.ResetTestConfigDir()
 
-		// Create a file-based credstore
 		os.Setenv("FIZZY_TEST_NO_KR", "1")
 		defer os.Unsetenv("FIZZY_TEST_NO_KR")
 		store := credstore.NewStore(credstore.StoreOptions{
@@ -69,10 +62,13 @@ func TestAuthLogin(t *testing.T) {
 			DisableEnvVar: "FIZZY_TEST_NO_KR",
 			FallbackDir:   tempDir,
 		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
 
 		mock := NewMockClient()
 		result := SetTestMode(mock)
 		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
 		defer ResetTestMode()
 
 		err := authLoginCmd.RunE(authLoginCmd, []string{"cred-token-456"})
@@ -82,10 +78,10 @@ func TestAuthLogin(t *testing.T) {
 			t.Error("expected success response")
 		}
 
-		// Token should be in credstore (stored as JSON-encoded string)
-		loaded, err := store.Load("token")
+		// Token should be stored under "profile:acme"
+		loaded, err := store.Load("profile:acme")
 		if err != nil {
-			t.Fatalf("expected token in credstore: %v", err)
+			t.Fatalf("expected token in credstore under 'profile:acme': %v", err)
 		}
 		var tokenStr string
 		if err := json.Unmarshal(loaded, &tokenStr); err != nil {
@@ -104,15 +100,31 @@ func TestAuthLogin(t *testing.T) {
 				t.Errorf("expected empty token in YAML, got '%s'", savedConfig.Token)
 			}
 		}
+
+		// Profile should exist in profile store
+		p, err := profileStore.Get("acme")
+		if err != nil {
+			t.Fatalf("expected profile 'acme' in store: %v", err)
+		}
+		if p.BaseURL != "https://app.fizzy.do" {
+			t.Errorf("expected base_url 'https://app.fizzy.do', got '%s'", p.BaseURL)
+		}
+	})
+
+	t.Run("requires profile to be configured", func(t *testing.T) {
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		err := authLoginCmd.RunE(authLoginCmd, []string{"some-token"})
+		if err == nil {
+			t.Error("expected error when no profile configured")
+		}
 	})
 
 	t.Run("preserves existing config values", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		tempDir := t.TempDir()
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
@@ -126,9 +138,10 @@ func TestAuthLogin(t *testing.T) {
 
 		mock := NewMockClient()
 		SetTestMode(mock)
+		SetTestConfig("", "existing-account", "https://custom.api.com")
 		defer ResetTestMode()
 
-		err = authLoginCmd.RunE(authLoginCmd, []string{"new-token"})
+		err := authLoginCmd.RunE(authLoginCmd, []string{"new-token"})
 		assertExitCode(t, err, 0)
 
 		// Verify existing values preserved
@@ -146,60 +159,174 @@ func TestAuthLogin(t *testing.T) {
 }
 
 func TestAuthLogout(t *testing.T) {
-	t.Run("removes config file", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
+	t.Run("removes profile-scoped token from credstore", func(t *testing.T) {
+		tempDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
 
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
-		// Create config file
-		configPath := filepath.Join(tempDir, "config.yaml")
-		os.WriteFile(configPath, []byte("token: test-token"), 0600)
+		os.Setenv("FIZZY_LOGOUT_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_LOGOUT_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-logout-test",
+			DisableEnvVar: "FIZZY_LOGOUT_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+
+		// Save a token under profile-scoped key
+		tokenData, _ := json.Marshal("my-token")
+		store.Save("profile:acme", tokenData)
+
+		// Save config
+		cfg := &config.Config{Account: "acme"}
+		cfgData, _ := yaml.Marshal(cfg)
+		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
 
 		mock := NewMockClient()
 		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("my-token", "acme", "https://app.fizzy.do")
 		defer ResetTestMode()
 
-		err = authLogoutCmd.RunE(authLogoutCmd, []string{})
+		// Reset the --all flag
+		authLogoutCmd.Flags().Set("all", "false")
+		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
 		assertExitCode(t, err, 0)
 
-		// Verify config file was removed
-		if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-			t.Error("expected config file to be removed")
+		// Verify token removed from credstore
+		if _, err := store.Load("profile:acme"); err == nil {
+			t.Error("expected token to be removed from credstore")
+		}
+
+		// Verify profile removed from store
+		if _, err := profileStore.Get("acme"); err == nil {
+			t.Error("expected profile to be removed from store")
+		}
+	})
+
+	t.Run("preserves legacy token key for downgrade compatibility", func(t *testing.T) {
+		tempDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		config.SetTestConfigDir(tempDir)
+		defer config.ResetTestConfigDir()
+
+		os.Setenv("FIZZY_LOGOUT_LEGACY_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_LOGOUT_LEGACY_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-logout-legacy-test",
+			DisableEnvVar: "FIZZY_LOGOUT_LEGACY_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+
+		// Simulate a migrated state: both legacy and profile-scoped keys exist
+		tokenData, _ := json.Marshal("my-token")
+		store.Save("token", tokenData)
+		store.Save("profile:acme", tokenData)
+
+		cfg := &config.Config{Account: "acme"}
+		cfgData, _ := yaml.Marshal(cfg)
+		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("my-token", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		authLogoutCmd.Flags().Set("all", "false")
+		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
+		assertExitCode(t, err, 0)
+
+		// Profile-scoped key should be removed
+		if _, err := store.Load("profile:acme"); err == nil {
+			t.Error("expected profile-scoped token to be removed")
+		}
+
+		// Legacy key should be preserved
+		if _, err := store.Load("token"); err != nil {
+			t.Error("expected legacy 'token' key to be preserved for downgrade compatibility")
+		}
+	})
+
+	t.Run("logout --all removes all profiles", func(t *testing.T) {
+		tempDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		config.SetTestConfigDir(tempDir)
+		defer config.ResetTestConfigDir()
+
+		os.Setenv("FIZZY_LOGOUTALL_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_LOGOUTALL_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-logoutall-test",
+			DisableEnvVar: "FIZZY_LOGOUTALL_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+		profileStore.Create(&profile.Profile{Name: "other", BaseURL: "https://app.fizzy.do"})
+
+		// Save tokens for two profiles
+		t1, _ := json.Marshal("token1")
+		t2, _ := json.Marshal("token2")
+		store.Save("profile:acme", t1)
+		store.Save("profile:other", t2)
+
+		// Config
+		cfg := &config.Config{Account: "acme"}
+		cfgData, _ := yaml.Marshal(cfg)
+		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("token1", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		authLogoutCmd.Flags().Set("all", "true")
+		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
+		assertExitCode(t, err, 0)
+
+		// Both tokens should be gone
+		if _, err := store.Load("profile:acme"); err == nil {
+			t.Error("expected acme token removed")
+		}
+		if _, err := store.Load("profile:other"); err == nil {
+			t.Error("expected other token removed")
 		}
 	})
 
 	t.Run("succeeds even if no config file exists", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		tempDir := t.TempDir()
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
 		mock := NewMockClient()
 		SetTestMode(mock)
+		SetTestConfig("", "some-profile", "https://app.fizzy.do")
 		defer ResetTestMode()
 
-		err = authLogoutCmd.RunE(authLogoutCmd, []string{})
+		authLogoutCmd.Flags().Set("all", "false")
+		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
 		assertExitCode(t, err, 0)
 	})
 }
 
 func TestAuthStatus(t *testing.T) {
 	t.Run("shows authenticated status when token exists", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		tempDir := t.TempDir()
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
@@ -211,17 +338,13 @@ func TestAuthStatus(t *testing.T) {
 		result := SetTestMode(mock)
 		defer ResetTestMode()
 
-		err = authStatusCmd.RunE(authStatusCmd, []string{})
+		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
 		if !result.Response.OK {
 			t.Error("expected success response")
 		}
 
-		// Check response data
 		data, ok := result.Response.Data.(map[string]any)
 		if !ok {
 			t.Fatal("expected map response data")
@@ -232,18 +355,13 @@ func TestAuthStatus(t *testing.T) {
 		if data["token_configured"] != true {
 			t.Errorf("expected token_configured=true, got %v", data["token_configured"])
 		}
-		if data["account"] != "test-account" {
-			t.Errorf("expected account='test-account', got %v", data["account"])
+		if data["profile"] != "test-account" {
+			t.Errorf("expected profile='test-account', got %v", data["profile"])
 		}
 	})
 
 	t.Run("shows unauthenticated status when no token", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		tempDir := t.TempDir()
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
@@ -251,12 +369,9 @@ func TestAuthStatus(t *testing.T) {
 		result := SetTestMode(mock)
 		defer ResetTestMode()
 
-		err = authStatusCmd.RunE(authStatusCmd, []string{})
+		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
 		data, ok := result.Response.Data.(map[string]any)
 		if !ok {
 			t.Fatal("expected map response data")
@@ -296,12 +411,7 @@ func TestAuthStatus(t *testing.T) {
 	})
 
 	t.Run("shows custom api_url when configured", func(t *testing.T) {
-		tempDir, err := os.MkdirTemp("", "fizzy-test-*")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tempDir)
-
+		tempDir := t.TempDir()
 		config.SetTestConfigDir(tempDir)
 		defer config.ResetTestConfigDir()
 
@@ -313,12 +423,9 @@ func TestAuthStatus(t *testing.T) {
 		result := SetTestMode(mock)
 		defer ResetTestMode()
 
-		err = authStatusCmd.RunE(authStatusCmd, []string{})
+		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
 
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
 		data := result.Response.Data.(map[string]any)
 		if data["api_url"] != "https://custom.fizzy.do" {
 			t.Errorf("expected api_url='https://custom.fizzy.do', got %v", data["api_url"])
@@ -326,10 +433,405 @@ func TestAuthStatus(t *testing.T) {
 	})
 }
 
-func TestTokenMigrationToCredstore(t *testing.T) {
-	t.Run("migrates YAML token to credstore on first load", func(t *testing.T) {
+func TestAuthList(t *testing.T) {
+	t.Run("lists authenticated profiles", func(t *testing.T) {
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		os.Setenv("FIZZY_LIST_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_LIST_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-list-test",
+			DisableEnvVar: "FIZZY_LIST_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+		profileStore.Create(&profile.Profile{Name: "other", BaseURL: "https://staging.fizzy.do"})
+
+		// Save tokens for two profiles
+		t1, _ := json.Marshal("token1")
+		t2, _ := json.Marshal("token2")
+		store.Save("profile:acme", t1)
+		store.Save("profile:other", t2)
+
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		defer ResetTestMode()
+
+		err := authListCmd.RunE(authListCmd, []string{})
+		assertExitCode(t, err, 0)
+
+		profiles, ok := result.Response.Data.([]any)
+		if !ok {
+			t.Fatal("expected array response data")
+		}
+		if len(profiles) != 2 {
+			t.Fatalf("expected 2 profiles, got %d", len(profiles))
+		}
+
+		// Find the active profile (acme is default since it was created first)
+		var activeFound bool
+		for _, p := range profiles {
+			entry := p.(map[string]any)
+			if entry["active"] == true {
+				activeFound = true
+				if entry["profile"] != "acme" {
+					t.Errorf("expected active profile 'acme', got %v", entry["profile"])
+				}
+			}
+			if entry["has_token"] != true {
+				t.Errorf("expected has_token=true for profile %v", entry["profile"])
+			}
+		}
+		if !activeFound {
+			t.Error("expected one active profile")
+		}
+	})
+
+	t.Run("shows empty list when no profiles", func(t *testing.T) {
+		mock := NewMockClient()
+		result := SetTestMode(mock)
+		defer ResetTestMode()
+
+		err := authListCmd.RunE(authListCmd, []string{})
+		assertExitCode(t, err, 0)
+
+		profiles, ok := result.Response.Data.([]any)
+		if !ok {
+			t.Fatal("expected array response data")
+		}
+		if len(profiles) != 0 {
+			t.Errorf("expected 0 profiles, got %d", len(profiles))
+		}
+	})
+}
+
+func TestAuthSwitch(t *testing.T) {
+	t.Run("switches active profile", func(t *testing.T) {
+		tempDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		config.SetTestConfigDir(tempDir)
+		defer config.ResetTestConfigDir()
+
+		os.Setenv("FIZZY_SWITCH_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_SWITCH_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-switch-test",
+			DisableEnvVar: "FIZZY_SWITCH_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+		profileStore.Create(&profile.Profile{Name: "other", BaseURL: "https://staging.fizzy.do"})
+
+		// Save token for the target profile
+		tokenData, _ := json.Marshal("other-token")
+		store.Save("profile:other", tokenData)
+
+		cfg := &config.Config{Account: "acme"}
+		cfgData, _ := yaml.Marshal(cfg)
+		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("acme-token", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		err := authSwitchCmd.RunE(authSwitchCmd, []string{"other"})
+		assertExitCode(t, err, 0)
+
+		// Verify config was updated
+		data, _ := os.ReadFile(filepath.Join(tempDir, "config.yaml"))
+		var savedConfig config.Config
+		yaml.Unmarshal(data, &savedConfig)
+
+		if savedConfig.Account != "other" {
+			t.Errorf("expected account 'other', got '%s'", savedConfig.Account)
+		}
+		if savedConfig.Board != "" {
+			t.Errorf("expected board cleared on switch, got '%s'", savedConfig.Board)
+		}
+
+		// Verify profile store default was updated
+		_, defaultName, _ := profileStore.List()
+		if defaultName != "other" {
+			t.Errorf("expected default profile 'other', got '%s'", defaultName)
+		}
+	})
+
+	t.Run("fails for unknown profile", func(t *testing.T) {
+		credDir := t.TempDir()
+
+		os.Setenv("FIZZY_SWITCH2_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_SWITCH2_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-switch2-test",
+			DisableEnvVar: "FIZZY_SWITCH2_NO_KR",
+			FallbackDir:   credDir,
+		})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		err := authSwitchCmd.RunE(authSwitchCmd, []string{"nonexistent"})
+		if err == nil {
+			t.Error("expected error for unknown profile")
+		}
+	})
+}
+
+func TestProfileFlagTokenSelection(t *testing.T) {
+	t.Run("resolveToken loads token for profile specified via flag", func(t *testing.T) {
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		os.Setenv("FIZZY_FLAGSEL_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_FLAGSEL_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-flagsel-test",
+			DisableEnvVar: "FIZZY_FLAGSEL_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+		profileStore.Create(&profile.Profile{Name: "other", BaseURL: "https://app.fizzy.do"})
+
+		// Save tokens for two profiles
+		t1, _ := json.Marshal("acme-token")
+		t2, _ := json.Marshal("other-token")
+		store.Save("profile:acme", t1)
+		store.Save("profile:other", t2)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		// Simulate --profile other flag: resolve profile first, then token
+		cfgProfile = "other"
+		defer func() { cfgProfile = "" }()
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		resolveToken()
+
+		if cfg.Token != "other-token" {
+			t.Errorf("expected 'other-token' for --profile other, got '%s'", cfg.Token)
+		}
+		if cfg.Account != "other" {
+			t.Errorf("expected account 'other' from profile resolution, got '%s'", cfg.Account)
+		}
+	})
+
+	t.Run("resolveToken uses default profile when no flag", func(t *testing.T) {
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		os.Setenv("FIZZY_FLAGSEL2_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_FLAGSEL2_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-flagsel2-test",
+			DisableEnvVar: "FIZZY_FLAGSEL2_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+		profileStore.Create(&profile.Profile{Name: "other", BaseURL: "https://app.fizzy.do"})
+
+		t1, _ := json.Marshal("acme-token")
+		t2, _ := json.Marshal("other-token")
+		store.Save("profile:acme", t1)
+		store.Save("profile:other", t2)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		// No --profile flag, "acme" is default (first created)
+		cfgProfile = ""
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		resolveToken()
+
+		if cfg.Token != "acme-token" {
+			t.Errorf("expected 'acme-token' for default profile, got '%s'", cfg.Token)
+		}
+	})
+
+	t.Run("invalid --profile flag returns error", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		cfgProfile = "nonexistent"
+		defer func() { cfgProfile = "" }()
+
+		err := resolveProfile()
+		if err == nil {
+			t.Error("expected error for invalid --profile flag")
+		}
+	})
+
+	t.Run("invalid FIZZY_PROFILE env var returns error", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		os.Setenv("FIZZY_PROFILE", "nonexistent")
+		defer os.Unsetenv("FIZZY_PROFILE")
+
+		err := resolveProfile()
+		if err == nil {
+			t.Error("expected error for invalid FIZZY_PROFILE env var")
+		}
+	})
+}
+
+func TestTokenMigrationToProfile(t *testing.T) {
+	t.Run("migrates legacy single-key token to profile-scoped key", func(t *testing.T) {
 		configDir := t.TempDir()
 		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		config.SetTestConfigDir(configDir)
+		defer config.ResetTestConfigDir()
+
+		os.WriteFile(filepath.Join(configDir, "config.yaml"),
+			[]byte("account: acme"), 0600)
+
+		os.Setenv("FIZZY_MIGRATE_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_MIGRATE_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-migrate-test",
+			DisableEnvVar: "FIZZY_MIGRATE_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+
+		// Save a legacy token under the old "token" key
+		legacyToken, _ := json.Marshal("migrate-me")
+		store.Save("token", legacyToken)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		resolveToken()
+
+		// Token should be available via the profile-scoped key
+		loaded, err := store.Load("profile:acme")
+		if err != nil {
+			t.Fatalf("expected token in credstore under 'profile:acme': %v", err)
+		}
+		var tokenStr string
+		json.Unmarshal(loaded, &tokenStr)
+		if tokenStr != "migrate-me" {
+			t.Errorf("expected 'migrate-me', got '%s'", tokenStr)
+		}
+
+		// Legacy key should be preserved for downgrade compatibility
+		if _, err := store.Load("token"); err != nil {
+			t.Error("expected legacy 'token' key to be preserved after migration")
+		}
+
+		// cfg.Token should be set
+		if cfg.Token != "migrate-me" {
+			t.Errorf("expected cfg.Token='migrate-me', got '%s'", cfg.Token)
+		}
+
+		// Profile should be created in the store
+		if _, err := profileStore.Get("acme"); err != nil {
+			t.Error("expected profile 'acme' to be created during migration")
+		}
+	})
+
+	t.Run("migrates account-scoped token to profile-scoped key", func(t *testing.T) {
+		configDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		config.SetTestConfigDir(configDir)
+		defer config.ResetTestConfigDir()
+
+		os.WriteFile(filepath.Join(configDir, "config.yaml"),
+			[]byte("account: acme"), 0600)
+
+		os.Setenv("FIZZY_MIGRATE_ACCT_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_MIGRATE_ACCT_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-migrate-acct-test",
+			DisableEnvVar: "FIZZY_MIGRATE_ACCT_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+
+		// Save a token under the old account-scoped key "token:acme"
+		acctToken, _ := json.Marshal("acct-migrate-me")
+		store.Save("token:acme", acctToken)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		resolveToken()
+
+		// Token should now also be under profile-scoped key
+		loaded, err := store.Load("profile:acme")
+		if err != nil {
+			t.Fatalf("expected token under 'profile:acme': %v", err)
+		}
+		var tokenStr string
+		json.Unmarshal(loaded, &tokenStr)
+		if tokenStr != "acct-migrate-me" {
+			t.Errorf("expected 'acct-migrate-me', got '%s'", tokenStr)
+		}
+
+		// cfg.Token should be set
+		if cfg.Token != "acct-migrate-me" {
+			t.Errorf("expected cfg.Token='acct-migrate-me', got '%s'", cfg.Token)
+		}
+	})
+
+	t.Run("migrates YAML token to profile-scoped credstore key", func(t *testing.T) {
+		configDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
 
 		config.SetTestConfigDir(configDir)
 		defer config.ResetTestConfigDir()
@@ -338,64 +840,6 @@ func TestTokenMigrationToCredstore(t *testing.T) {
 		os.WriteFile(filepath.Join(configDir, "config.yaml"),
 			[]byte("token: migrate-me\naccount: acme"), 0600)
 
-		// Set up credstore (file-based, no keyring)
-		os.Setenv("FIZZY_MIGRATE_NO_KR", "1")
-		defer os.Unsetenv("FIZZY_MIGRATE_NO_KR")
-		store := credstore.NewStore(credstore.StoreOptions{
-			ServiceName:   "fizzy-migrate-test",
-			DisableEnvVar: "FIZZY_MIGRATE_NO_KR",
-			FallbackDir:   credDir,
-		})
-
-		mock := NewMockClient()
-		SetTestMode(mock)
-		SetTestCreds(store)
-		SetTestConfig("migrate-me", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
-
-		// resolveToken triggers the migration
-		resolveToken()
-
-		// Token should now be in credstore
-		var tokenStr string
-		loaded, err := store.Load("token")
-		if err != nil {
-			t.Fatalf("expected token in credstore after migration: %v", err)
-		}
-		if err := json.Unmarshal(loaded, &tokenStr); err != nil {
-			t.Fatalf("expected JSON-encoded token, got %q: %v", string(loaded), err)
-		}
-		if tokenStr != "migrate-me" {
-			t.Errorf("expected 'migrate-me' in credstore, got '%s'", tokenStr)
-		}
-
-		// Global YAML config should have token cleared
-		data, err := os.ReadFile(filepath.Join(configDir, "config.yaml"))
-		if err != nil {
-			t.Fatalf("config file missing: %v", err)
-		}
-		var savedConfig config.Config
-		yaml.Unmarshal(data, &savedConfig)
-		if savedConfig.Token != "" {
-			t.Errorf("expected empty token in YAML after migration, got '%s'", savedConfig.Token)
-		}
-		// Account should be preserved
-		if savedConfig.Account != "acme" {
-			t.Errorf("expected account 'acme' preserved, got '%s'", savedConfig.Account)
-		}
-	})
-
-	t.Run("does not migrate when credstore already has token", func(t *testing.T) {
-		configDir := t.TempDir()
-		credDir := t.TempDir()
-
-		config.SetTestConfigDir(configDir)
-		defer config.ResetTestConfigDir()
-
-		// Write a global config with a stale token
-		os.WriteFile(filepath.Join(configDir, "config.yaml"),
-			[]byte("token: old-yaml-token\naccount: acme"), 0600)
-
 		os.Setenv("FIZZY_MIGRATE2_NO_KR", "1")
 		defer os.Unsetenv("FIZZY_MIGRATE2_NO_KR")
 		store := credstore.NewStore(credstore.StoreOptions{
@@ -403,43 +847,43 @@ func TestTokenMigrationToCredstore(t *testing.T) {
 			DisableEnvVar: "FIZZY_MIGRATE2_NO_KR",
 			FallbackDir:   credDir,
 		})
-
-		// Pre-populate credstore with a different token
-		credToken, _ := json.Marshal("cred-token")
-		store.Save("token", credToken)
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
 
 		mock := NewMockClient()
 		SetTestMode(mock)
 		SetTestCreds(store)
-		SetTestConfig("old-yaml-token", "acme", "https://app.fizzy.do")
+		SetTestProfiles(profileStore)
+		SetTestConfig("migrate-me", "acme", "https://app.fizzy.do")
 		defer ResetTestMode()
 
 		resolveToken()
 
-		// cfg.Token should be the credstore token (it wins over YAML)
-		if cfg.Token != "cred-token" {
-			t.Errorf("expected 'cred-token' from credstore, got '%s'", cfg.Token)
+		// Token should now be in credstore under profile key
+		var tokenStr string
+		loaded, err := store.Load("profile:acme")
+		if err != nil {
+			t.Fatalf("expected token in credstore after migration: %v", err)
+		}
+		json.Unmarshal(loaded, &tokenStr)
+		if tokenStr != "migrate-me" {
+			t.Errorf("expected 'migrate-me' in credstore, got '%s'", tokenStr)
 		}
 
-		// YAML config should be untouched (no migration needed)
+		// Global YAML config should have token cleared
 		data, _ := os.ReadFile(filepath.Join(configDir, "config.yaml"))
 		var savedConfig config.Config
 		yaml.Unmarshal(data, &savedConfig)
-		if savedConfig.Token != "old-yaml-token" {
-			t.Errorf("YAML token should be untouched, got '%s'", savedConfig.Token)
+		if savedConfig.Token != "" {
+			t.Errorf("expected empty token in YAML after migration, got '%s'", savedConfig.Token)
+		}
+		if savedConfig.Account != "acme" {
+			t.Errorf("expected account 'acme' preserved, got '%s'", savedConfig.Account)
 		}
 	})
 
-	t.Run("does not migrate env-var token to credstore", func(t *testing.T) {
-		configDir := t.TempDir()
+	t.Run("does not migrate when profile-scoped token exists", func(t *testing.T) {
 		credDir := t.TempDir()
-
-		config.SetTestConfigDir(configDir)
-		defer config.ResetTestConfigDir()
-
-		// Global YAML config has NO token — only env var provides one
-		os.WriteFile(filepath.Join(configDir, "config.yaml"),
-			[]byte("account: acme"), 0600)
+		profileDir := t.TempDir()
 
 		os.Setenv("FIZZY_MIGRATE3_NO_KR", "1")
 		defer os.Unsetenv("FIZZY_MIGRATE3_NO_KR")
@@ -448,28 +892,38 @@ func TestTokenMigrationToCredstore(t *testing.T) {
 			DisableEnvVar: "FIZZY_MIGRATE3_NO_KR",
 			FallbackDir:   credDir,
 		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+
+		// Pre-populate credstore with a profile-scoped token
+		credToken, _ := json.Marshal("cred-token")
+		store.Save("profile:acme", credToken)
 
 		mock := NewMockClient()
 		SetTestMode(mock)
 		SetTestCreds(store)
-		// cfg.Token set via env-like source (not from global YAML)
-		SetTestConfig("env-token", "acme", "https://app.fizzy.do")
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "acme", "https://app.fizzy.do")
 		defer ResetTestMode()
 
 		resolveToken()
 
-		// Credstore should remain empty — env tokens must not be persisted
-		if _, err := store.Load("token"); err == nil {
-			t.Error("env-var token should not be migrated to credstore")
+		// cfg.Token should be the profile-scoped token
+		if cfg.Token != "cred-token" {
+			t.Errorf("expected 'cred-token' from credstore, got '%s'", cfg.Token)
 		}
 	})
 
-	t.Run("loads legacy raw-string token from credstore", func(t *testing.T) {
+	t.Run("does not migrate env-var token to credstore", func(t *testing.T) {
 		configDir := t.TempDir()
 		credDir := t.TempDir()
+		profileDir := t.TempDir()
 
 		config.SetTestConfigDir(configDir)
 		defer config.ResetTestConfigDir()
+
+		// Global YAML config has NO token — only env var provides one
+		os.WriteFile(filepath.Join(configDir, "config.yaml"),
+			[]byte("account: acme"), 0600)
 
 		os.Setenv("FIZZY_MIGRATE4_NO_KR", "1")
 		defer os.Unsetenv("FIZZY_MIGRATE4_NO_KR")
@@ -478,28 +932,266 @@ func TestTokenMigrationToCredstore(t *testing.T) {
 			DisableEnvVar: "FIZZY_MIGRATE4_NO_KR",
 			FallbackDir:   credDir,
 		})
-
-		// Seed the credentials file with a value that is valid JSON (so the
-		// file backend can parse it) but NOT a JSON string — a number.
-		// json.Unmarshal into a string will fail, exercising the raw
-		// fallback path in credsLoadToken. This simulates what the keyring
-		// backend would return for a pre-JSON-encoding token.
-		credFile := filepath.Join(credDir, "credentials.json")
-		os.MkdirAll(credDir, 0700)
-		os.WriteFile(credFile, []byte(`{"token": 12345}`), 0600)
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
 
 		mock := NewMockClient()
 		SetTestMode(mock)
 		SetTestCreds(store)
-		SetTestConfig("", "acme", "https://app.fizzy.do")
+		SetTestProfiles(profileStore)
+		// cfg.Token set via env-like source (not from global YAML)
+		SetTestConfig("env-token", "acme", "https://app.fizzy.do")
 		defer ResetTestMode()
 
 		resolveToken()
 
-		// The number 12345 can't json.Unmarshal into a string, so the
-		// fallback path returns the raw bytes as a string.
-		if cfg.Token != "12345" {
-			t.Errorf("expected legacy raw token '12345', got '%s'", cfg.Token)
+		// Credstore should remain empty — env tokens must not be persisted
+		if _, err := store.Load("profile:acme"); err == nil {
+			t.Error("env-var token should not be migrated to credstore")
+		}
+	})
+}
+
+func TestProfileResolution(t *testing.T) {
+	t.Run("FIZZY_PROFILE env var sets account and BaseURL", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "staging", BaseURL: "https://staging.fizzy.do"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		os.Setenv("FIZZY_PROFILE", "staging")
+		defer os.Unsetenv("FIZZY_PROFILE")
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if cfg.Account != "staging" {
+			t.Errorf("expected account 'staging', got '%s'", cfg.Account)
+		}
+		if cfg.APIURL != "https://staging.fizzy.do" {
+			t.Errorf("expected APIURL 'https://staging.fizzy.do', got '%s'", cfg.APIURL)
+		}
+	})
+
+	t.Run("profile BaseURL overrides YAML config APIURL", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "custom", BaseURL: "https://custom.example.com"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		// Single profile auto-selects
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if cfg.APIURL != "https://custom.example.com" {
+			t.Errorf("expected APIURL 'https://custom.example.com', got '%s'", cfg.APIURL)
+		}
+	})
+
+	t.Run("FIZZY_API_URL env var beats profile BaseURL", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "custom", BaseURL: "https://profile.example.com"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		os.Setenv("FIZZY_API_URL", "https://env.example.com")
+		defer os.Unsetenv("FIZZY_API_URL")
+		// Simulate what config.Load() does: apply env var to cfg before profile resolution
+		cfg.APIURL = "https://env.example.com"
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Env var value should survive — resolveProfile must not overwrite it with profile BaseURL
+		if cfg.APIURL != "https://env.example.com" {
+			t.Errorf("expected APIURL 'https://env.example.com' (from env), got '%s'", cfg.APIURL)
+		}
+	})
+
+	t.Run("FIZZY_BOARD env var beats profile board", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{
+			Name:    "withboard",
+			BaseURL: "https://app.fizzy.do",
+			Extra: map[string]json.RawMessage{
+				"board": json.RawMessage(`"profile-board"`),
+			},
+		})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		os.Setenv("FIZZY_BOARD", "env-board")
+		defer os.Unsetenv("FIZZY_BOARD")
+		// Simulate what config.Load() does: apply env var to cfg before profile resolution
+		cfg.Board = "env-board"
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Env var value should survive — resolveProfile must not overwrite it with profile board
+		if cfg.Board != "env-board" {
+			t.Errorf("expected board 'env-board' (from env), got '%s'", cfg.Board)
+		}
+	})
+
+	t.Run("profile board from Extra applies when no env var", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{
+			Name:    "withboard",
+			BaseURL: "https://app.fizzy.do",
+			Extra: map[string]json.RawMessage{
+				"board": json.RawMessage(`"board-123"`),
+			},
+		})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if cfg.Board != "board-123" {
+			t.Errorf("expected board 'board-123', got '%s'", cfg.Board)
+		}
+	})
+
+	t.Run("FIZZY_ACCOUNT works as fallback for FIZZY_PROFILE", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "legacy-acct", BaseURL: "https://app.fizzy.do"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		SetTestConfig("", "", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		os.Setenv("FIZZY_ACCOUNT", "legacy-acct")
+		defer os.Unsetenv("FIZZY_ACCOUNT")
+
+		if err := resolveProfile(); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if cfg.Account != "legacy-acct" {
+			t.Errorf("expected account 'legacy-acct' from FIZZY_ACCOUNT fallback, got '%s'", cfg.Account)
+		}
+	})
+}
+
+func TestEnsureProfileUpdatesExisting(t *testing.T) {
+	t.Run("updates existing profile's BaseURL and board", func(t *testing.T) {
+		profileDir := t.TempDir()
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://old.example.com"})
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestProfiles(profileStore)
+		defer ResetTestMode()
+
+		// Call ensureProfile with new settings
+		ensureProfile("acme", "https://new.example.com", "new-board")
+
+		p, err := profileStore.Get("acme")
+		if err != nil {
+			t.Fatalf("expected profile to exist: %v", err)
+		}
+		if p.BaseURL != "https://new.example.com" {
+			t.Errorf("expected BaseURL 'https://new.example.com', got '%s'", p.BaseURL)
+		}
+		var board string
+		if boardRaw, ok := p.Extra["board"]; ok {
+			json.Unmarshal(boardRaw, &board)
+		}
+		if board != "new-board" {
+			t.Errorf("expected board 'new-board', got '%s'", board)
+		}
+	})
+}
+
+func TestAuthLogoutAllCleansLegacyKeys(t *testing.T) {
+	t.Run("removes legacy token:<account> keys on logout --all", func(t *testing.T) {
+		tempDir := t.TempDir()
+		credDir := t.TempDir()
+		profileDir := t.TempDir()
+
+		config.SetTestConfigDir(tempDir)
+		defer config.ResetTestConfigDir()
+
+		os.Setenv("FIZZY_LOGOUTALL_LEGACY_NO_KR", "1")
+		defer os.Unsetenv("FIZZY_LOGOUTALL_LEGACY_NO_KR")
+		store := credstore.NewStore(credstore.StoreOptions{
+			ServiceName:   "fizzy-logoutall-legacy-test",
+			DisableEnvVar: "FIZZY_LOGOUTALL_LEGACY_NO_KR",
+			FallbackDir:   credDir,
+		})
+		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
+		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
+
+		// Save tokens in ALL key formats
+		tokenData, _ := json.Marshal("my-token")
+		store.Save("token", tokenData)        // bare legacy
+		store.Save("token:acme", tokenData)   // account-scoped legacy
+		store.Save("profile:acme", tokenData) // profile-scoped
+
+		cfg := &config.Config{Account: "acme"}
+		cfgData, _ := yaml.Marshal(cfg)
+		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
+
+		mock := NewMockClient()
+		SetTestMode(mock)
+		SetTestCreds(store)
+		SetTestProfiles(profileStore)
+		SetTestConfig("my-token", "acme", "https://app.fizzy.do")
+		defer ResetTestMode()
+
+		authLogoutCmd.Flags().Set("all", "true")
+		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
+		assertExitCode(t, err, 0)
+
+		// ALL key formats should be cleaned up
+		if _, err := store.Load("token"); err == nil {
+			t.Error("expected bare 'token' key removed")
+		}
+		if _, err := store.Load("token:acme"); err == nil {
+			t.Error("expected legacy 'token:acme' key removed")
+		}
+		if _, err := store.Load("profile:acme"); err == nil {
+			t.Error("expected 'profile:acme' key removed")
+		}
+
+		// Profile should be gone from store
+		if _, err := profileStore.Get("acme"); err == nil {
+			t.Error("expected profile removed from store")
 		}
 	})
 }
