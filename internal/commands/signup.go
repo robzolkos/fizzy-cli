@@ -592,7 +592,7 @@ func signupPost(client *http.Client, reqURL string, body any) (map[string]any, h
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "fizzy-cli/1.0")
+	req.Header.Set("User-Agent", fmt.Sprintf("fizzy-cli/%s", rootCmd.Version))
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -648,7 +648,7 @@ func signupGet(client *http.Client, reqURL string) (map[string]any, error) {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "fizzy-cli/1.0")
+	req.Header.Set("User-Agent", fmt.Sprintf("fizzy-cli/%s", rootCmd.Version))
 
 	resp, err := client.Do(req)
 	if err != nil {
