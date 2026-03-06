@@ -792,9 +792,10 @@ func migrateLegacyToken(profileName string) {
 }
 
 // ensureProfile creates or updates a profile in the store.
-// If the profile already exists, fields are merged: BaseURL is only
-// overwritten when a non-default value is provided, and Extra entries
-// are preserved unless explicitly replaced.
+// If the profile already exists, fields are merged: BaseURL is
+// preserved only when the caller passes an empty string (meaning
+// "keep whatever is there"), and Extra entries are preserved unless
+// explicitly replaced.
 func ensureProfile(name, baseURL, board string) {
 	if profiles == nil {
 		return
