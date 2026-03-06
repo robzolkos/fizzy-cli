@@ -23,9 +23,9 @@ const banner = `
 `
 
 // printBanner prints the Fizzy braille art banner to stderr.
-// Only prints in interactive TTY mode, never in machine/piped output.
+// Suppressed when machine format flags are set or stderr is not a TTY.
 func printBanner() {
-	if IsMachineOutput() {
+	if cfgAgent || cfgJSON || cfgQuiet || cfgIDsOnly || cfgCount {
 		return
 	}
 	if !isatty.IsTerminal(os.Stderr.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()) {
