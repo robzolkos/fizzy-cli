@@ -22,7 +22,7 @@ const banner = `
 ⠀⢁⠈⢀⠠⠐⠀⡈⠠⠀⡀⠄⠠⠐⠀⠂⠁⠐⠀⠂⡈⢀⠁⠐⡀⠄⠠⠀⠄⢀⠐⠀⠂⠐⠀⠂⡀⢁⠈⡀⠄⠠⠀⠐⢀⠈⡀⢁⠐⢀⠐⠀⡁⢈⠀⡁⠀⠄⠐⠀⠂⠁⡈⢀⠁⡈⢀⠁⡈⢀⠀⡀⠄⠂⠁⠀⠄⠠⠈⠀
 `
 
-// printBanner prints the Fizzy braille art banner to stdout.
+// printBanner prints the Fizzy braille art banner to stderr.
 // Only prints in interactive TTY mode, never in machine/piped output.
 func printBanner() {
 	if IsMachineOutput() {
@@ -31,5 +31,5 @@ func printBanner() {
 	if !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stdout.Fd()) {
 		return
 	}
-	fmt.Print(banner)
+	fmt.Fprint(os.Stderr, banner)
 }
