@@ -28,7 +28,7 @@ func printBanner() {
 	if IsMachineOutput() {
 		return
 	}
-	if !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stdout.Fd()) {
+	if !isatty.IsTerminal(os.Stderr.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()) {
 		return
 	}
 	fmt.Fprint(os.Stderr, banner)
