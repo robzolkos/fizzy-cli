@@ -740,7 +740,7 @@ func saveSignupConfig(token, account, apiURL string) error {
 	globalCfg := config.LoadGlobal()
 
 	if creds != nil {
-		if err := credsSaveToken(token); err != nil {
+		if err := credsSaveProfileToken(account, token); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: could not save token to credential store: %v\n", err)
 			globalCfg.Token = token
 		} else {
@@ -748,6 +748,12 @@ func saveSignupConfig(token, account, apiURL string) error {
 		}
 	} else {
 		globalCfg.Token = token
+	}
+
+	// Create/update profile
+	ensureProfile(account, apiURL, "")
+	if profiles != nil {
+		_ = profiles.SetDefault(account)
 	}
 
 	globalCfg.Account = account

@@ -246,11 +246,17 @@ func runSetup(cmd *cobra.Command, args []string) error {
 		// Save token to credstore when available
 		credstoreSaved := false
 		if creds != nil {
-			if err := credsSaveToken(token); err != nil {
+			if err := credsSaveProfileToken(selectedAccountSlug, token); err != nil {
 				fmt.Printf("Warning: could not save token to credential store: %v\n", err)
 			} else {
 				credstoreSaved = true
 			}
+		}
+
+		// Create/update profile
+		ensureProfile(selectedAccountSlug, apiURL, selectedBoardID)
+		if profiles != nil {
+			_ = profiles.SetDefault(selectedAccountSlug)
 		}
 
 		// Load existing global config to preserve any other settings
