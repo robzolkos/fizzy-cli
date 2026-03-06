@@ -527,7 +527,7 @@ func runSignupComplete(cmd *cobra.Command, args []string) error {
 	summary := "Configuration saved."
 
 	if name != "" {
-		result["welcome_message"] = welcomeMessage + "\n" + welcomeSignoff
+		result["welcome_message"] = welcomeMessage + welcomeSignature + welcomeSignoff
 		result["is_new_user"] = true
 	}
 
