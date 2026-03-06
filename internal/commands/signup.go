@@ -67,6 +67,41 @@ func init() {
 	signupCompleteCmd.Flags().String("account", "", "Account slug (required for existing users)")
 }
 
+const welcomeSignature = `
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡤⠖⠚⠉⠉
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠋⠁
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠞⠉
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠖⠋⠀⢀⠀⠀⠀⠉⠉⠉⠉⠉⢉⡽⠋⢉⣉⠉⠉⠉⠉⠉⡉⠉⠉⠉⠉
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠴⠋⢁⡴⠯⠞⠙⣦⠞⠙⠦⠤⠤⠤⢠⠞⣀⡴⠋⠈⠋⠙⠒⠒⠚⠁
+⠀⠀⠀⠀⢀⣠⠤⠖⠉⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⠞⠁
+⠤⠤⠖⠚⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡞
+`
+
+const welcomeMessage = `Welcome, and thanks for signing up for Fizzy.
+
+To get you started, we set you up with a Fizzy board called Playground.
+It's got a few cards designed to help you learn Fizzy itself. Open each
+card, go through the simple steps, and you'll be an expert in Fizzy in
+no time. You'll see the Playground when you close this message.
+
+If you ever need a hand, please contact me directly at
+jason@37signals.com. I'm here for you, we're all here for you.
+
+Thanks again and all the best,`
+
+const welcomeSignoff = `Jason Fried, jason@37signals.com
+CEO & co-founder of 37signals, makers of Fizzy, Basecamp, and HEY`
+
+// printWelcomeMessage prints the CEO welcome message for new users.
+func printWelcomeMessage() {
+	fmt.Println()
+	fmt.Println(welcomeMessage)
+	fmt.Print(welcomeSignature)
+	fmt.Println(welcomeSignoff)
+	fmt.Println()
+}
+
 // runSignup is the interactive wizard that walks through the entire signup flow.
 func runSignup(cmd *cobra.Command, args []string) error {
 	if IsMachineOutput() {
@@ -312,8 +347,13 @@ func runSignup(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	fmt.Println("✓ Configuration saved.")
-	fmt.Println()
-	fmt.Println("You're all set! Try: fizzy board list")
+
+	if requiresCompletion {
+		printWelcomeMessage()
+	} else {
+		fmt.Println()
+		fmt.Println("You're all set! Try: fizzy board list")
+	}
 	return nil
 }
 
@@ -479,15 +519,24 @@ func runSignupComplete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	result := map[string]any{
+		"token":   token,
+		"account": accountSlug,
+	}
+
+	summary := "Configuration saved."
+
+	if name != "" {
+		result["welcome_message"] = welcomeMessage + "\n" + welcomeSignoff
+		result["is_new_user"] = true
+	}
+
 	breadcrumbs := []Breadcrumb{
 		breadcrumb("boards", "fizzy board list", "List boards"),
 		breadcrumb("setup", "fizzy setup", "Full interactive setup"),
 	}
 
-	printSuccessWithBreadcrumbs(map[string]any{
-		"token":   token,
-		"account": accountSlug,
-	}, "Configuration saved.", breadcrumbs)
+	printSuccessWithBreadcrumbs(result, summary, breadcrumbs)
 	return nil
 }
 
