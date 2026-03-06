@@ -1,0 +1,25 @@
+internal/commands/auth.go
+  a0163b87a4191dda 343-344
+internal/commands/root.go
+  a0163b87a4191dda 801
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.8",
+  "base_commit_sha": "c49c299abbd2ac39667ad1908984f311bee27263",
+  "prompts": {
+    "a0163b87a4191dda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0675a580-ecc9-4720-bcc4-cc5aeca6df2c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 9,
+      "accepted_lines": 11,
+      "overriden_lines": 0
+    }
+  }
+}
