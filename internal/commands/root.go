@@ -787,29 +787,44 @@ func migrateLegacyToken(profileName string) {
 }
 
 // ensureProfile creates or updates a profile in the store.
-// If the profile already exists, it is replaced with the new settings.
+// If the profile already exists, fields are merged: BaseURL is only
+// overwritten when a non-default value is provided, and Extra entries
+// are preserved unless explicitly replaced.
 func ensureProfile(name, baseURL, board string) {
 	if profiles == nil {
 		return
 	}
-	if baseURL == "" {
-		baseURL = config.DefaultAPIURL
+
+	existing, _ := profiles.Get(name)
+
+	newBaseURL := baseURL
+	if newBaseURL == "" || newBaseURL == config.DefaultAPIURL {
+		if existing != nil && existing.BaseURL != "" {
+			newBaseURL = existing.BaseURL
+		} else {
+			newBaseURL = config.DefaultAPIURL
+		}
+	}
+
+	extra := map[string]json.RawMessage{}
+	if existing != nil {
+		for k, v := range existing.Extra {
+			extra[k] = v
+		}
+	}
+	if board != "" {
+		extra["board"] = func() json.RawMessage { b, _ := json.Marshal(board); return b }()
 	}
 
 	p := &profile.Profile{
 		Name:    name,
-		BaseURL: baseURL,
+		BaseURL: newBaseURL,
 	}
-	if board != "" {
-		p.Extra = map[string]json.RawMessage{
-			"board": func() json.RawMessage { b, _ := json.Marshal(board); return b }(),
-		}
+	if len(extra) > 0 {
+		p.Extra = extra
 	}
 
 	if err := profiles.Create(p); err != nil {
-		// Profile already exists — delete and recreate to update it.
-		// Preserve default status: if this profile was the default, SetDefault
-		// is called by the caller (login/setup/signup/switch) anyway.
 		_ = profiles.Delete(name)
 		_ = profiles.Create(p)
 	}
