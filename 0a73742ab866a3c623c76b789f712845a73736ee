@@ -1,0 +1,23 @@
+internal/commands/root.go
+  916c2161245f5a16 790-791,797-815,823
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.8",
+  "base_commit_sha": "0a73742ab866a3c623c76b789f712845a73736ee",
+  "prompts": {
+    "916c2161245f5a16": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7cb16b1e-d081-41a3-a9c4-e3a67e62d8fb",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>",
+      "messages": [],
+      "total_additions": 77,
+      "total_deletions": 69,
+      "accepted_lines": 62,
+      "overriden_lines": 0
+    }
+  }
+}
