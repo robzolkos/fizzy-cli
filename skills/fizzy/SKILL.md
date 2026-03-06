@@ -194,6 +194,43 @@ fizzy auth status                        # Check auth status
 fizzy identity show                      # Show accounts
 ```
 
+### Signup (New User or Token Generation)
+
+Interactive:
+```bash
+fizzy signup                                    # Full interactive wizard
+```
+
+Step-by-step (for agents):
+```bash
+# Step 1: Request magic link
+fizzy signup start --email user@example.com
+# Returns: {"pending_authentication_token": "eyJ..."}
+
+# Step 2: User checks email for 6-digit code, then verify
+fizzy signup verify --code ABC123 --pending-token eyJ...
+# Returns: {"session_token": "eyJ...", "requires_signup_completion": true/false}
+# For existing users (requires_signup_completion=false), also returns: "accounts": [{"name": "...", "slug": "..."}]
+
+# Step 3: Write the session token to a temp file to keep it out of the agent session
+echo "eyJ..." > /tmp/fizzy-session && chmod 600 /tmp/fizzy-session
+
+# Step 4a: New user — complete signup (session token via stdin)
+fizzy signup complete --name "Full Name" < /tmp/fizzy-session
+# Returns: {"token": "fizzy_...", "account": "slug"}
+
+# Step 4b: Existing user — generate token for an account
+fizzy signup complete --account SLUG < /tmp/fizzy-session
+# Returns: {"token": "fizzy_...", "account": "slug"}
+
+# Step 5: Clean up the temp file
+rm /tmp/fizzy-session
+```
+
+**Note:** The user must check their email for the 6-digit code between steps 1 and 2.
+The session token is written to a temp file and piped via stdin to avoid exposing it in shell history or the agent's conversation context.
+Token is saved to the system credential store when available, with ~/.config/fizzy/config.yaml as fallback. Account and API URL are always saved to the config file.
+
 ---
 
 ## Response Structure

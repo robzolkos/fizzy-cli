@@ -113,14 +113,17 @@ func runSkill(cmd *cobra.Command, args []string) error {
 		selectedPath = normalizeSkillPath(selectedPath)
 	}
 
-	// Expand home directory
-	expandedPath := expandPath(selectedPath)
+	// Expand home directory and resolve to absolute path
+	expandedPath, err := sanitizeFilePath(expandPath(selectedPath))
+	if err != nil {
+		return &output.Error{Code: output.CodeAPI, Message: fmt.Sprintf("invalid path: %v", err)}
+	}
 
 	// Check if file already exists
 	if fileExists(expandedPath) {
 		var overwrite bool
 		err = huh.NewConfirm().
-			Title(fmt.Sprintf("File already exists at %s. Overwrite?", selectedPath)).
+			Title(fmt.Sprintf("File already exists at %s. Overwrite?", sanitizeLogValue(selectedPath))).
 			Value(&overwrite).
 			Run()
 
@@ -131,7 +134,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 	}
 
 	// Install embedded skill file
-	fmt.Print("Installing to " + selectedPath + "... ")
+	fmt.Print("Installing to " + sanitizeLogValue(selectedPath) + "... ")
 	err = installSkillFile(expandedPath, skills.Content)
 	if err != nil {
 		fmt.Println("✗")
@@ -142,7 +145,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Println("Fizzy skill installed successfully!")
 	fmt.Println()
-	fmt.Printf("Location: %s\n", expandedPath)
+	fmt.Printf("Location: %s\n", sanitizeLogValue(expandedPath))
 
 	return nil
 }
@@ -199,6 +202,22 @@ func expandPath(path string) string {
 		return home
 	}
 	return path
+}
+
+// sanitizeFilePath resolves a path to an absolute, cleaned form.
+func sanitizeFilePath(path string) (string, error) {
+	return filepath.Abs(path)
+}
+
+// sanitizeLogValue strips control characters (newlines, tabs, etc.) from a
+// string before it is written to output, preventing log injection.
+func sanitizeLogValue(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return -1
+		}
+		return r
+	}, s)
 }
 
 // fileExists checks if a file exists
