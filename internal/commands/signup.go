@@ -80,9 +80,9 @@ const welcomeSignature = `
 const welcomeMessage = `Welcome, and thanks for signing up for Fizzy.
 
 To get you started, we set you up with a Fizzy board called Playground.
-It's got a few cards designed to help you learn Fizzy itself. Open each
-card, go through the simple steps, and you'll be an expert in Fizzy in
-no time. You'll see the Playground when you close this message.
+It's got a few cards designed to help you learn Fizzy itself. Try
+"fizzy board list" to see it, then open each card and go through the
+simple steps — you'll be an expert in Fizzy in no time.
 
 If you ever need a hand, please contact me directly at
 jason@37signals.com. I'm here for you, we're all here for you.
