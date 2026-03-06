@@ -13,6 +13,7 @@ import (
 
 	"github.com/basecamp/cli/credstore"
 	"github.com/basecamp/cli/output"
+	"github.com/basecamp/cli/profile"
 	"github.com/basecamp/fizzy-cli/internal/client"
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"github.com/basecamp/fizzy-cli/internal/errors"
@@ -27,7 +28,7 @@ type Breadcrumb = output.Breadcrumb
 var (
 	// Global flags
 	cfgToken    string
-	cfgAccount  string
+	cfgProfile  string
 	cfgAPIURL   string
 	cfgVerbose  bool
 	cfgJSON     bool
@@ -47,6 +48,9 @@ var (
 
 	// Credential store
 	creds *credstore.Store
+
+	// Profile store
+	profiles *profile.Store
 
 	// Output writer
 	out       *output.Writer
@@ -97,11 +101,19 @@ Use fizzy to manage boards, cards, comments, and more from your terminal.`,
 			})
 		}
 
+		// Initialize profile store (skip in test mode)
+		if profiles == nil && lastResult == nil {
+			if cfgPath, err := config.ConfigPath(); err == nil {
+				profiles = profile.NewStore(filepath.Join(filepath.Dir(cfgPath), "config.json"))
+			}
+		}
+
+		if err := resolveProfile(); err != nil {
+			return &output.Error{Code: output.CodeUsage, Message: err.Error()}
+		}
 		resolveToken()
 
-		if cfgAccount != "" {
-			cfg.Account = cfgAccount
-		}
+		// --api-url flag overrides everything (including profile BaseURL)
 		if cfgAPIURL != "" {
 			cfg.APIURL = cfgAPIURL
 		}
@@ -214,7 +226,7 @@ func IsMachineOutput() bool {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgToken, "token", "", "API access token")
-	rootCmd.PersistentFlags().StringVar(&cfgAccount, "account", "", "Account slug")
+	rootCmd.PersistentFlags().StringVar(&cfgProfile, "profile", "", "Named profile to use")
 	rootCmd.PersistentFlags().StringVar(&cfgAPIURL, "api-url", "", "API base URL")
 	rootCmd.PersistentFlags().BoolVar(&cfgVerbose, "verbose", false, "Show request/response details")
 	rootCmd.PersistentFlags().BoolVar(&cfgJSON, "json", false, "JSON envelope output")
@@ -250,7 +262,7 @@ func requireAuth() error {
 // requireAccount checks that we have an account configured.
 func requireAccount() error {
 	if cfg.Account == "" {
-		return errors.NewInvalidArgsError("No account configured. Set --account flag or FIZZY_ACCOUNT")
+		return errors.NewInvalidArgsError("No account configured. Set --profile flag, FIZZY_PROFILE, or run 'fizzy setup'")
 	}
 	return nil
 }
@@ -575,20 +587,48 @@ func TestOutput() string {
 	return lastRawOutput
 }
 
-// credsSaveToken JSON-encodes a token and saves it to the credential store.
-// The file backend requires valid JSON (values are stored as json.RawMessage).
-func credsSaveToken(token string) error {
+// credsSaveProfileToken JSON-encodes a token and saves it to the credential store
+// under a profile-scoped key ("profile:<name>").
+func credsSaveProfileToken(profileName, token string) error {
 	data, err := json.Marshal(token)
 	if err != nil {
 		return err
 	}
-	return creds.Save("token", data)
+	return creds.Save(profile.CredentialKey(profileName, ""), data)
 }
 
-// credsLoadToken loads and JSON-decodes a token from the credential store.
-// Falls back to treating the payload as a raw string for backward compatibility
-// with pre-JSON credstore entries.
-func credsLoadToken() (string, error) {
+// credsLoadProfileToken loads and JSON-decodes a token for a profile.
+func credsLoadProfileToken(profileName string) (string, error) {
+	data, err := creds.Load(profile.CredentialKey(profileName, ""))
+	if err != nil {
+		return "", err
+	}
+	var token string
+	if json.Unmarshal(data, &token) == nil {
+		return token, nil
+	}
+	return string(data), nil
+}
+
+// credsDeleteProfileToken removes the token for a profile.
+func credsDeleteProfileToken(profileName string) error {
+	return creds.Delete(profile.CredentialKey(profileName, ""))
+}
+
+// credsLoadLegacyToken loads a token from a legacy credstore entry.
+// Checks both the old single "token" key and the account-scoped "token:<account>" key.
+func credsLoadLegacyToken(account string) (string, error) {
+	// Try account-scoped key first (from earlier multi-account PR)
+	if account != "" {
+		if data, err := creds.Load("token:" + account); err == nil {
+			var token string
+			if json.Unmarshal(data, &token) == nil {
+				return token, nil
+			}
+			return string(data), nil
+		}
+	}
+	// Then try bare "token" key (original single-key format)
 	data, err := creds.Load("token")
 	if err != nil {
 		return "", err
@@ -597,8 +637,89 @@ func credsLoadToken() (string, error) {
 	if json.Unmarshal(data, &token) == nil {
 		return token, nil
 	}
-	// Legacy: raw string stored before JSON encoding was adopted
 	return string(data), nil
+}
+
+// resolveProfile uses profile.Resolve() to determine the active profile,
+// then applies its BaseURL and board (from Extra) to cfg.
+//
+// Profile settings (layer 3) outrank local and global YAML config (layers
+// 4–5) but yield to env vars (layer 2) and flags (layer 1). Because
+// config.Load() has already run, cfg may contain values from YAML config.
+// resolveProfile intentionally overwrites those with profile data:
+//
+//	profile BaseURL  → cfg.APIURL (unless FIZZY_API_URL env var is set)
+//	profile board    → cfg.Board  (unless FIZZY_BOARD env var is set)
+//
+// Returns an error when the user explicitly selected a profile (via flag
+// or env var) that doesn't exist — that must be a hard failure, not a
+// silent fallback to whatever was in the YAML config.
+func resolveProfile() error {
+	if profiles == nil {
+		// No profile store (test mode or init failure) — fall back to env var
+		if p := os.Getenv("FIZZY_PROFILE"); p != "" {
+			cfg.Account = p
+		}
+		return nil
+	}
+
+	allProfiles, defaultName, err := profiles.List()
+	if err != nil || len(allProfiles) == 0 {
+		// No profiles configured — fall back to env var for account
+		if p := os.Getenv("FIZZY_PROFILE"); p != "" {
+			cfg.Account = p
+		} else if a := os.Getenv("FIZZY_ACCOUNT"); a != "" {
+			cfg.Account = a
+		}
+		return nil
+	}
+
+	resolved, err := profile.Resolve(profile.ResolveOptions{
+		FlagValue:      cfgProfile,
+		EnvVar:         profileEnvVar(),
+		DefaultProfile: defaultName,
+		Profiles:       allProfiles,
+	})
+	if err != nil {
+		// If the user explicitly specified a profile (flag or env), that's a
+		// hard error — don't silently fall back to a different account.
+		if cfgProfile != "" || profileEnvVar() != "" {
+			return err
+		}
+		// Otherwise (ambiguous default, etc.) — not fatal, just skip profile
+		return nil
+	}
+	if resolved == "" {
+		return nil
+	}
+
+	p := allProfiles[resolved]
+	if p == nil {
+		return nil
+	}
+
+	// Apply profile settings to cfg — but only for fields that haven't
+	// already been set by a higher-precedence source (env var).
+	cfg.Account = resolved
+	if p.BaseURL != "" && os.Getenv("FIZZY_API_URL") == "" {
+		cfg.APIURL = p.BaseURL
+	}
+	if boardRaw, ok := p.Extra["board"]; ok {
+		var board string
+		if json.Unmarshal(boardRaw, &board) == nil && board != "" && os.Getenv("FIZZY_BOARD") == "" {
+			cfg.Board = board
+		}
+	}
+	return nil
+}
+
+// profileEnvVar returns the FIZZY_PROFILE env var, falling back to FIZZY_ACCOUNT
+// for backward compatibility.
+func profileEnvVar() string {
+	if v := os.Getenv("FIZZY_PROFILE"); v != "" {
+		return v
+	}
+	return os.Getenv("FIZZY_ACCOUNT")
 }
 
 // resolveToken applies token precedence: YAML → credstore (with migration) → env → flag.
@@ -606,18 +727,20 @@ func resolveToken() {
 	// 1. YAML file (global + local, already in cfg.Token from config.Load())
 	// 2. credstore (overrides YAML — credstore is the "new" storage)
 	if creds != nil {
-		if t, err := credsLoadToken(); err == nil && t != "" {
-			cfg.Token = t
+		profileName := cfg.Account // profile name = account slug
+
+		if profileName != "" {
+			// Try profile-scoped token first
+			if t, err := credsLoadProfileToken(profileName); err == nil && t != "" {
+				cfg.Token = t
+			} else {
+				// Legacy migration: old keys → profile-scoped key
+				migrateLegacyToken(profileName)
+			}
 		} else {
-			// Auto-migrate: if the global YAML config has a token but credstore
-			// doesn't, migrate it. Only read from the global file directly to
-			// avoid persisting env-var or local-config tokens.
-			globalCfg := config.LoadGlobal()
-			if globalCfg.Token != "" {
-				if err := credsSaveToken(globalCfg.Token); err == nil {
-					globalCfg.Token = ""
-					_ = globalCfg.Save()
-				}
+			// No profile — try legacy single key
+			if t, err := credsLoadLegacyToken(""); err == nil && t != "" {
+				cfg.Token = t
 			}
 		}
 	}
@@ -631,9 +754,71 @@ func resolveToken() {
 	}
 }
 
+// migrateLegacyToken moves a token from legacy storage to profile-scoped storage.
+// Handles the old single-key credstore entry, account-scoped keys, and YAML config tokens.
+func migrateLegacyToken(profileName string) {
+	// Check legacy credstore keys — copy to profile-scoped key but keep the
+	// legacy keys so older CLI versions still work after a downgrade.
+	if t, err := credsLoadLegacyToken(profileName); err == nil && t != "" {
+		// Always use the token, even if migration to profile-scoped key fails
+		cfg.Token = t
+		if err := credsSaveProfileToken(profileName, t); err == nil {
+			ensureProfile(profileName, cfg.APIURL, "")
+		}
+		return
+	}
+
+	// Check YAML config token (pre-credstore migration)
+	globalCfg := config.LoadGlobal()
+	if globalCfg.Token != "" {
+		// Always use the token, even if migration to profile-scoped key fails
+		cfg.Token = globalCfg.Token
+		if err := credsSaveProfileToken(profileName, globalCfg.Token); err == nil {
+			globalCfg.Token = ""
+			globalCfg.Account = profileName
+			_ = globalCfg.Save()
+			ensureProfile(profileName, cfg.APIURL, "")
+		}
+	}
+}
+
+// ensureProfile creates or updates a profile in the store.
+// If the profile already exists, it is replaced with the new settings.
+func ensureProfile(name, baseURL, board string) {
+	if profiles == nil {
+		return
+	}
+	if baseURL == "" {
+		baseURL = config.DefaultAPIURL
+	}
+
+	p := &profile.Profile{
+		Name:    name,
+		BaseURL: baseURL,
+	}
+	if board != "" {
+		p.Extra = map[string]json.RawMessage{
+			"board": json.RawMessage(`"` + board + `"`),
+		}
+	}
+
+	if err := profiles.Create(p); err != nil {
+		// Profile already exists — delete and recreate to update it.
+		// Preserve default status: if this profile was the default, SetDefault
+		// is called by the caller (login/setup/signup/switch) anyway.
+		_ = profiles.Delete(name)
+		_ = profiles.Create(p)
+	}
+}
+
 // SetTestCreds sets the credential store for testing.
 func SetTestCreds(store *credstore.Store) {
 	creds = store
+}
+
+// SetTestProfiles sets the profile store for testing.
+func SetTestProfiles(store *profile.Store) {
+	profiles = store
 }
 
 // SetTestConfig sets the config for testing.
@@ -652,6 +837,7 @@ func ResetTestMode() {
 	lastRawOutput = ""
 	cfg = nil
 	creds = nil
+	profiles = nil
 	cfgJSON = false
 	cfgQuiet = false
 	cfgIDsOnly = false
@@ -660,6 +846,7 @@ func ResetTestMode() {
 	cfgStyled = false
 	cfgMarkdown = false
 	cfgLimit = 0
+	cfgProfile = ""
 }
 
 // GetRootCmd returns the root command for testing.

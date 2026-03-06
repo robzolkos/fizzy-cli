@@ -101,7 +101,19 @@ func findLocalConfig() string {
 }
 
 // Load loads configuration from files, environment variables, and defaults.
-// Priority (highest to lowest): flags > env vars > local config > global config > defaults
+// Full precedence (highest to lowest):
+//
+//  1. CLI flags (--token, --profile, --api-url, --board)
+//  2. Environment variables (FIZZY_TOKEN, FIZZY_PROFILE, FIZZY_API_URL, FIZZY_BOARD)
+//  3. Named profile settings (BaseURL, board from config.json)
+//  4. Local project config (.fizzy.yaml)
+//  5. Global config (~/.config/fizzy/config.yaml)
+//  6. Defaults
+//
+// Load() handles layers 2, 4, 5, and 6. Profile resolution (layer 3) and flag
+// application (layer 1) happen afterward in root.go's PersistentPreRunE.
+// Because profiles outrank local/global config, resolveProfile() intentionally
+// overwrites values that Load() set from YAML — but preserves env var values.
 //
 // Local config (.fizzy.yaml) is searched for in the current directory and parent
 // directories. Values from local config override global config values.
