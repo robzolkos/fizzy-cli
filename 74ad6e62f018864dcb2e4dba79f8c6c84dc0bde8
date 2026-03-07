@@ -1,0 +1,25 @@
+.github/workflows/scorecard.yml
+  165812755f1f6651 1-38
+.github/workflows/release.yml
+  165812755f1f6651 8-11,15,84,104,115-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.8",
+  "base_commit_sha": "74ad6e62f018864dcb2e4dba79f8c6c84dc0bde8",
+  "prompts": {
+    "165812755f1f6651": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "53851ff7-25d6-4cc9-8bcd-36a4a307b96f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>",
+      "messages": [],
+      "total_additions": 50,
+      "total_deletions": 1,
+      "accepted_lines": 50,
+      "overriden_lines": 0
+    }
+  }
+}
