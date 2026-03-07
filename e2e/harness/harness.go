@@ -215,7 +215,7 @@ func (h *Harness) RunWithoutAuth(args ...string) *Result {
 func (h *Harness) buildArgs(args ...string) []string {
 	globalArgs := []string{
 		"--token", h.Token,
-		"--account", h.Account,
+		"--profile", h.Account,
 		"--api-url", h.APIURL,
 	}
 	// Append global args after the command args

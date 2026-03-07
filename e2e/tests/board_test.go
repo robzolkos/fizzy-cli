@@ -142,6 +142,75 @@ func TestBoardCRUD(t *testing.T) {
 		if id != boardID {
 			t.Errorf("expected id %q, got %q", boardID, id)
 		}
+
+		if publicURL := result.GetDataString("public_url"); publicURL != "" {
+			t.Errorf("expected unpublished board to omit public_url, got %q", publicURL)
+		}
+	})
+
+	t.Run("publish and unpublish board", func(t *testing.T) {
+		if boardID == "" {
+			t.Skip("no board ID from create test")
+		}
+
+		publishResult := h.Run("board", "publish", boardID)
+
+		if publishResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("expected exit code %d, got %d\nstderr: %s\nstdout: %s",
+				harness.ExitSuccess, publishResult.ExitCode, publishResult.Stderr, publishResult.Stdout)
+		}
+
+		if publishResult.Response == nil {
+			t.Fatal("expected JSON response from publish")
+		}
+
+		if !publishResult.Response.OK {
+			t.Fatalf("expected ok=true, error: %+v", publishResult.Response.Error)
+		}
+
+		publicURL := publishResult.GetDataString("public_url")
+		if publicURL == "" {
+			unpublishResult := h.Run("board", "unpublish", boardID)
+			if unpublishResult.ExitCode != harness.ExitSuccess {
+				t.Fatalf("publish succeeded but cleanup unpublish failed\nstderr: %s\nstdout: %s",
+					unpublishResult.Stderr, unpublishResult.Stdout)
+			}
+			t.Skip("live API does not yet return public_url after publish")
+		}
+
+		showPublished := h.Run("board", "show", boardID)
+		if showPublished.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to show published board: %s", showPublished.Stderr)
+		}
+		if got := showPublished.GetDataString("public_url"); got != publicURL {
+			t.Errorf("expected public_url %q after publish, got %q", publicURL, got)
+		}
+
+		unpublishResult := h.Run("board", "unpublish", boardID)
+		if unpublishResult.ExitCode != harness.ExitSuccess {
+			t.Fatalf("expected exit code %d, got %d\nstderr: %s\nstdout: %s",
+				harness.ExitSuccess, unpublishResult.ExitCode, unpublishResult.Stderr, unpublishResult.Stdout)
+		}
+
+		if unpublishResult.Response == nil {
+			t.Fatal("expected JSON response from unpublish")
+		}
+
+		if !unpublishResult.Response.OK {
+			t.Fatalf("expected ok=true, error: %+v", unpublishResult.Response.Error)
+		}
+
+		if !unpublishResult.GetDataBool("unpublished") {
+			t.Error("expected unpublished=true")
+		}
+
+		showUnpublished := h.Run("board", "show", boardID)
+		if showUnpublished.ExitCode != harness.ExitSuccess {
+			t.Fatalf("failed to show unpublished board: %s", showUnpublished.Stderr)
+		}
+		if got := showUnpublished.GetDataString("public_url"); got != "" {
+			t.Errorf("expected public_url to be removed after unpublish, got %q", got)
+		}
 	})
 
 	t.Run("update board name", func(t *testing.T) {

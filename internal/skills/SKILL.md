@@ -96,7 +96,7 @@ Want to change something?
 
 | Resource | List | Show | Create | Update | Delete | Other |
 |----------|------|------|--------|--------|--------|-------|
-| board | `board list` | `board show ID` | `board create` | `board update ID` | `board delete ID` | `migrate board ID` |
+| board | `board list` | `board show ID` | `board create` | `board update ID` | `board delete ID` | `board publish ID`, `board unpublish ID`, `migrate board ID` |
 | card | `card list` | `card show NUMBER` | `card create` | `card update NUMBER` | `card delete NUMBER` | `card move NUMBER` |
 | search | `search QUERY` | - | - | - | - | - |
 | column | `column list --board ID` | `column show ID --board ID` | `column create` | `column update ID` | `column delete ID` | - |
@@ -470,8 +470,12 @@ fizzy board list [--page N] [--all]
 fizzy board show BOARD_ID
 fizzy board create --name "Name" [--all_access true/false] [--auto_postpone_period N]
 fizzy board update BOARD_ID [--name "Name"] [--all_access true/false] [--auto_postpone_period N]
+fizzy board publish BOARD_ID
+fizzy board unpublish BOARD_ID
 fizzy board delete BOARD_ID
 ```
+
+`board show` includes `public_url` only when the board is published.
 
 ### Board Migration
 
