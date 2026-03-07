@@ -11,7 +11,9 @@ CMD fizzy board create
 CMD fizzy board delete
 CMD fizzy board help
 CMD fizzy board list
+CMD fizzy board publish
 CMD fizzy board show
+CMD fizzy board unpublish
 CMD fizzy board update
 CMD fizzy card
 CMD fizzy card assign
@@ -284,6 +286,19 @@ FLAG fizzy board list --quiet type=bool
 FLAG fizzy board list --styled type=bool
 FLAG fizzy board list --token type=string
 FLAG fizzy board list --verbose type=bool
+FLAG fizzy board publish --agent type=bool
+FLAG fizzy board publish --api-url type=string
+FLAG fizzy board publish --count type=bool
+FLAG fizzy board publish --help type=bool
+FLAG fizzy board publish --ids-only type=bool
+FLAG fizzy board publish --json type=bool
+FLAG fizzy board publish --limit type=int
+FLAG fizzy board publish --markdown type=bool
+FLAG fizzy board publish --profile type=string
+FLAG fizzy board publish --quiet type=bool
+FLAG fizzy board publish --styled type=bool
+FLAG fizzy board publish --token type=string
+FLAG fizzy board publish --verbose type=bool
 FLAG fizzy board show --agent type=bool
 FLAG fizzy board show --api-url type=string
 FLAG fizzy board show --count type=bool
@@ -297,6 +312,19 @@ FLAG fizzy board show --quiet type=bool
 FLAG fizzy board show --styled type=bool
 FLAG fizzy board show --token type=string
 FLAG fizzy board show --verbose type=bool
+FLAG fizzy board unpublish --agent type=bool
+FLAG fizzy board unpublish --api-url type=string
+FLAG fizzy board unpublish --count type=bool
+FLAG fizzy board unpublish --help type=bool
+FLAG fizzy board unpublish --ids-only type=bool
+FLAG fizzy board unpublish --json type=bool
+FLAG fizzy board unpublish --limit type=int
+FLAG fizzy board unpublish --markdown type=bool
+FLAG fizzy board unpublish --profile type=string
+FLAG fizzy board unpublish --quiet type=bool
+FLAG fizzy board unpublish --styled type=bool
+FLAG fizzy board unpublish --token type=string
+FLAG fizzy board unpublish --verbose type=bool
 FLAG fizzy board update --agent type=bool
 FLAG fizzy board update --all_access type=string
 FLAG fizzy board update --api-url type=string
@@ -1673,7 +1701,9 @@ SUB fizzy board create
 SUB fizzy board delete
 SUB fizzy board help
 SUB fizzy board list
+SUB fizzy board publish
 SUB fizzy board show
+SUB fizzy board unpublish
 SUB fizzy board update
 SUB fizzy card
 SUB fizzy card assign

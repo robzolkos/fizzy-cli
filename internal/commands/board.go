@@ -105,6 +105,13 @@ var boardShowCmd = &cobra.Command{
 			breadcrumb("columns", fmt.Sprintf("fizzy column list --board %s", boardID), "List columns"),
 			breadcrumb("create-card", fmt.Sprintf("fizzy card create --board %s --title \"title\"", boardID), "Create card"),
 		}
+		if board, ok := resp.Data.(map[string]any); ok {
+			if publicURL, ok := board["public_url"].(string); ok && publicURL != "" {
+				breadcrumbs = append(breadcrumbs, breadcrumb("unpublish", fmt.Sprintf("fizzy board unpublish %s", boardID), "Disable public board link"))
+			} else {
+				breadcrumbs = append(breadcrumbs, breadcrumb("publish", fmt.Sprintf("fizzy board publish %s", boardID), "Create public board link"))
+			}
+		}
 
 		printDetail(resp.Data, summary, breadcrumbs)
 		return nil
@@ -264,6 +271,71 @@ var boardDeleteCmd = &cobra.Command{
 	},
 }
 
+var boardPublishCmd = &cobra.Command{
+	Use:   "publish BOARD_ID",
+	Short: "Publish a board",
+	Long:  "Publishes a board and returns its public share URL.",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireAuthAndAccount(); err != nil {
+			return err
+		}
+
+		boardID := args[0]
+
+		client := getClient()
+		resp, err := client.Post("/boards/"+boardID+"/publication.json", nil)
+		if err != nil {
+			return err
+		}
+
+		breadcrumbs := []Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy board show %s", boardID), "View board"),
+			breadcrumb("cards", fmt.Sprintf("fizzy card list --board %s", boardID), "List cards"),
+			breadcrumb("unpublish", fmt.Sprintf("fizzy board unpublish %s", boardID), "Disable public board link"),
+		}
+
+		data := resp.Data
+		if data == nil {
+			data = map[string]any{"published": true}
+		}
+
+		printMutation(data, "", breadcrumbs)
+		return nil
+	},
+}
+
+var boardUnpublishCmd = &cobra.Command{
+	Use:   "unpublish BOARD_ID",
+	Short: "Unpublish a board",
+	Long:  "Removes a board's public share URL.",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireAuthAndAccount(); err != nil {
+			return err
+		}
+
+		boardID := args[0]
+
+		client := getClient()
+		_, err := client.Delete("/boards/" + boardID + "/publication.json")
+		if err != nil {
+			return err
+		}
+
+		breadcrumbs := []Breadcrumb{
+			breadcrumb("show", fmt.Sprintf("fizzy board show %s", boardID), "View board"),
+			breadcrumb("cards", fmt.Sprintf("fizzy card list --board %s", boardID), "List cards"),
+			breadcrumb("publish", fmt.Sprintf("fizzy board publish %s", boardID), "Create public board link"),
+		}
+
+		printMutation(map[string]any{
+			"unpublished": true,
+		}, "", breadcrumbs)
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(boardCmd)
 
@@ -289,4 +361,8 @@ func init() {
 
 	// Delete
 	boardCmd.AddCommand(boardDeleteCmd)
+
+	// Publication
+	boardCmd.AddCommand(boardPublishCmd)
+	boardCmd.AddCommand(boardUnpublishCmd)
 }
