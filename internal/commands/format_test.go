@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -542,16 +543,21 @@ func TestSetupBlockedInMachineMode(t *testing.T) {
 	}
 }
 
-func TestSkillBlockedInMachineMode(t *testing.T) {
+func TestSkillPrintsInMachineMode(t *testing.T) {
 	defer ResetTestMode()
 	ResetTestMode()
 	cfgAgent = true
+
+	var buf bytes.Buffer
+	skillCmd.SetOut(&buf)
+	defer skillCmd.SetOut(nil)
+
 	err := runSkill(skillCmd, nil)
-	if err == nil {
-		t.Fatal("expected error when running skill with --agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "interactive terminal") {
-		t.Errorf("unexpected error: %v", err)
+	if buf.Len() == 0 {
+		t.Error("expected skill content to be printed in machine mode")
 	}
 }
 

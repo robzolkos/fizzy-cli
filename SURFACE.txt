@@ -84,12 +84,16 @@ CMD fizzy reaction help
 CMD fizzy reaction list
 CMD fizzy search
 CMD fizzy setup
+CMD fizzy setup claude
+CMD fizzy setup help
 CMD fizzy signup
 CMD fizzy signup complete
 CMD fizzy signup help
 CMD fizzy signup start
 CMD fizzy signup verify
 CMD fizzy skill
+CMD fizzy skill help
+CMD fizzy skill install
 CMD fizzy step
 CMD fizzy step create
 CMD fizzy step delete
@@ -1316,6 +1320,32 @@ FLAG fizzy setup --quiet type=bool
 FLAG fizzy setup --styled type=bool
 FLAG fizzy setup --token type=string
 FLAG fizzy setup --verbose type=bool
+FLAG fizzy setup claude --agent type=bool
+FLAG fizzy setup claude --api-url type=string
+FLAG fizzy setup claude --count type=bool
+FLAG fizzy setup claude --help type=bool
+FLAG fizzy setup claude --ids-only type=bool
+FLAG fizzy setup claude --json type=bool
+FLAG fizzy setup claude --limit type=int
+FLAG fizzy setup claude --markdown type=bool
+FLAG fizzy setup claude --profile type=string
+FLAG fizzy setup claude --quiet type=bool
+FLAG fizzy setup claude --styled type=bool
+FLAG fizzy setup claude --token type=string
+FLAG fizzy setup claude --verbose type=bool
+FLAG fizzy setup help --agent type=bool
+FLAG fizzy setup help --api-url type=string
+FLAG fizzy setup help --count type=bool
+FLAG fizzy setup help --help type=bool
+FLAG fizzy setup help --ids-only type=bool
+FLAG fizzy setup help --json type=bool
+FLAG fizzy setup help --limit type=int
+FLAG fizzy setup help --markdown type=bool
+FLAG fizzy setup help --profile type=string
+FLAG fizzy setup help --quiet type=bool
+FLAG fizzy setup help --styled type=bool
+FLAG fizzy setup help --token type=string
+FLAG fizzy setup help --verbose type=bool
 FLAG fizzy signup --agent type=bool
 FLAG fizzy signup --api-url type=string
 FLAG fizzy signup --count type=bool
@@ -1399,6 +1429,32 @@ FLAG fizzy skill --quiet type=bool
 FLAG fizzy skill --styled type=bool
 FLAG fizzy skill --token type=string
 FLAG fizzy skill --verbose type=bool
+FLAG fizzy skill help --agent type=bool
+FLAG fizzy skill help --api-url type=string
+FLAG fizzy skill help --count type=bool
+FLAG fizzy skill help --help type=bool
+FLAG fizzy skill help --ids-only type=bool
+FLAG fizzy skill help --json type=bool
+FLAG fizzy skill help --limit type=int
+FLAG fizzy skill help --markdown type=bool
+FLAG fizzy skill help --profile type=string
+FLAG fizzy skill help --quiet type=bool
+FLAG fizzy skill help --styled type=bool
+FLAG fizzy skill help --token type=string
+FLAG fizzy skill help --verbose type=bool
+FLAG fizzy skill install --agent type=bool
+FLAG fizzy skill install --api-url type=string
+FLAG fizzy skill install --count type=bool
+FLAG fizzy skill install --help type=bool
+FLAG fizzy skill install --ids-only type=bool
+FLAG fizzy skill install --json type=bool
+FLAG fizzy skill install --limit type=int
+FLAG fizzy skill install --markdown type=bool
+FLAG fizzy skill install --profile type=string
+FLAG fizzy skill install --quiet type=bool
+FLAG fizzy skill install --styled type=bool
+FLAG fizzy skill install --token type=string
+FLAG fizzy skill install --verbose type=bool
 FLAG fizzy step --agent type=bool
 FLAG fizzy step --api-url type=string
 FLAG fizzy step --count type=bool
@@ -1746,12 +1802,16 @@ SUB fizzy reaction help
 SUB fizzy reaction list
 SUB fizzy search
 SUB fizzy setup
+SUB fizzy setup claude
+SUB fizzy setup help
 SUB fizzy signup
 SUB fizzy signup complete
 SUB fizzy signup help
 SUB fizzy signup start
 SUB fizzy signup verify
 SUB fizzy skill
+SUB fizzy skill help
+SUB fizzy skill install
 SUB fizzy step
 SUB fizzy step create
 SUB fizzy step delete

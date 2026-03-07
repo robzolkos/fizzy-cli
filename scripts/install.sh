@@ -119,4 +119,4 @@ if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
 fi
 
 echo ""
-echo "Run 'fizzy setup' to get started."
+"$INSTALL_DIR/${BINARY}" setup
