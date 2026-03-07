@@ -50,7 +50,7 @@ func runSkill(cmd *cobra.Command, args []string) error {
 	}
 
 	// Interactive: show agent picker wizard
-	return runSkillWizard(cmd)
+	return runSkillWizard()
 }
 
 func newSkillInstallCmd() *cobra.Command {
@@ -114,7 +114,7 @@ func installSkillFiles() (string, error) {
 }
 
 // runSkillWizard runs the interactive skill installation wizard.
-func runSkillWizard(cmd *cobra.Command) error {
+func runSkillWizard() error {
 	fmt.Println()
 	fmt.Println("Fizzy Skill Installation")
 	fmt.Println()
