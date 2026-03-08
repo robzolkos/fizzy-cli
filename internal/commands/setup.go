@@ -319,6 +319,11 @@ func runSetup(cmd *cobra.Command, args []string) error {
 		fmt.Println("⚠ Remember to add .fizzy.yaml to your .gitignore to avoid committing your token!")
 	}
 
+	// Coding agent integration
+	if err := setupAgents(cmd); err != nil {
+		return err
+	}
+
 	fmt.Println()
 	fmt.Println("You're all set! Try: fizzy board list")
 
