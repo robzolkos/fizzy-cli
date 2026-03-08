@@ -11,10 +11,10 @@ import (
 )
 
 func TestResolveFormat(t *testing.T) {
-	defer ResetTestMode()
+	defer resetTest()
 
 	t.Run("default is Auto", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		f, err := resolveFormat()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -25,7 +25,7 @@ func TestResolveFormat(t *testing.T) {
 	})
 
 	t.Run("--json resolves to JSON", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgJSON = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -37,7 +37,7 @@ func TestResolveFormat(t *testing.T) {
 	})
 
 	t.Run("--quiet resolves to Quiet", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgQuiet = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -49,7 +49,7 @@ func TestResolveFormat(t *testing.T) {
 	})
 
 	t.Run("--ids-only resolves to IDs", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgIDsOnly = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -61,7 +61,7 @@ func TestResolveFormat(t *testing.T) {
 	})
 
 	t.Run("--count resolves to Count", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgCount = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -73,7 +73,7 @@ func TestResolveFormat(t *testing.T) {
 	})
 
 	t.Run("multiple flags is an error", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgQuiet = true
 		cfgCount = true
 		_, err := resolveFormat()
@@ -86,7 +86,7 @@ func TestResolveFormat(t *testing.T) {
 	})
 
 	t.Run("--json with another flag is an error", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgJSON = true
 		cfgIDsOnly = true
 		_, err := resolveFormat()
@@ -106,10 +106,10 @@ func TestFormatQuietOutput(t *testing.T) {
 		},
 	}
 
-	SetTestMode(mock)
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
 	SetTestFormat(output.FormatQuiet)
-	defer ResetTestMode()
+	defer resetTest()
 
 	err := boardListCmd.RunE(boardListCmd, []string{})
 	if err != nil {
@@ -147,10 +147,10 @@ func TestFormatIDsOutput(t *testing.T) {
 		},
 	}
 
-	SetTestMode(mock)
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
 	SetTestFormat(output.FormatIDs)
-	defer ResetTestMode()
+	defer resetTest()
 
 	err := boardListCmd.RunE(boardListCmd, []string{})
 	if err != nil {
@@ -183,10 +183,10 @@ func TestFormatCountOutput(t *testing.T) {
 		},
 	}
 
-	SetTestMode(mock)
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
 	SetTestFormat(output.FormatCount)
-	defer ResetTestMode()
+	defer resetTest()
 
 	err := boardListCmd.RunE(boardListCmd, []string{})
 	if err != nil {
@@ -206,10 +206,10 @@ func TestFormatCountSingleObject(t *testing.T) {
 		Data:       map[string]interface{}{"id": "1", "name": "Board 1"},
 	}
 
-	SetTestMode(mock)
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
 	SetTestFormat(output.FormatCount)
-	defer ResetTestMode()
+	defer resetTest()
 
 	err := boardShowCmd.RunE(boardShowCmd, []string{"1"})
 	if err != nil {
@@ -231,10 +231,10 @@ func TestFormatJSONEnvelope(t *testing.T) {
 		},
 	}
 
-	SetTestMode(mock)
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
 	// SetTestMode already uses FormatJSON — verify the envelope
-	defer ResetTestMode()
+	defer resetTest()
 
 	err := boardListCmd.RunE(boardListCmd, []string{})
 	if err != nil {
@@ -303,9 +303,9 @@ func TestCobraFormatCount(t *testing.T) {
 			{"id": "2", "name": "B"},
 		},
 	}
-	clientFactory = func() client.API { return mock }
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
-	defer ResetTestMode()
+	defer resetTest()
 
 	raw, err := runCobraWithArgs("board", "list", "--count")
 	if err != nil {
@@ -322,9 +322,9 @@ func TestCobraFormatQuiet(t *testing.T) {
 		StatusCode: 200,
 		Data:       map[string]interface{}{"id": "42", "name": "Test Board"},
 	}
-	clientFactory = func() client.API { return mock }
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
-	defer ResetTestMode()
+	defer resetTest()
 
 	raw, err := runCobraWithArgs("board", "show", "42", "--quiet")
 	if err != nil {
@@ -352,9 +352,9 @@ func TestCobraFormatIDsOnly(t *testing.T) {
 			{"id": "20", "name": "B"},
 		},
 	}
-	clientFactory = func() client.API { return mock }
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
-	defer ResetTestMode()
+	defer resetTest()
 
 	raw, err := runCobraWithArgs("board", "list", "--ids-only")
 	if err != nil {
@@ -368,9 +368,9 @@ func TestCobraFormatIDsOnly(t *testing.T) {
 
 func TestCobraMutualExclusion(t *testing.T) {
 	mock := NewMockClient()
-	clientFactory = func() client.API { return mock }
+	SetTestModeWithSDK(mock)
 	SetTestConfig("token", "account", "https://api.example.com")
-	defer ResetTestMode()
+	defer resetTest()
 
 	_, err := runCobraWithArgs("board", "list", "--quiet", "--count")
 	if err == nil {
@@ -382,10 +382,10 @@ func TestCobraMutualExclusion(t *testing.T) {
 }
 
 func TestResolveFormatAgent(t *testing.T) {
-	defer ResetTestMode()
+	defer resetTest()
 
 	t.Run("--agent defaults to Quiet", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgAgent = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -397,7 +397,7 @@ func TestResolveFormatAgent(t *testing.T) {
 	})
 
 	t.Run("--agent --json resolves to JSON", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgAgent = true
 		cfgJSON = true
 		f, err := resolveFormat()
@@ -410,7 +410,7 @@ func TestResolveFormatAgent(t *testing.T) {
 	})
 
 	t.Run("--agent --styled is an error", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgAgent = true
 		cfgStyled = true
 		_, err := resolveFormat()
@@ -423,7 +423,7 @@ func TestResolveFormatAgent(t *testing.T) {
 	})
 
 	t.Run("--agent --markdown resolves to Markdown", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgAgent = true
 		cfgMarkdown = true
 		f, err := resolveFormat()
@@ -436,7 +436,7 @@ func TestResolveFormatAgent(t *testing.T) {
 	})
 
 	t.Run("--agent --ids-only resolves to IDs", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgAgent = true
 		cfgIDsOnly = true
 		f, err := resolveFormat()
@@ -449,7 +449,7 @@ func TestResolveFormatAgent(t *testing.T) {
 	})
 
 	t.Run("--agent --count resolves to Count", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgAgent = true
 		cfgCount = true
 		f, err := resolveFormat()
@@ -463,10 +463,10 @@ func TestResolveFormatAgent(t *testing.T) {
 }
 
 func TestResolveFormatStyledMarkdown(t *testing.T) {
-	defer ResetTestMode()
+	defer resetTest()
 
 	t.Run("--styled resolves to Styled", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgStyled = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -478,7 +478,7 @@ func TestResolveFormatStyledMarkdown(t *testing.T) {
 	})
 
 	t.Run("--markdown resolves to Markdown", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgMarkdown = true
 		f, err := resolveFormat()
 		if err != nil {
@@ -490,7 +490,7 @@ func TestResolveFormatStyledMarkdown(t *testing.T) {
 	})
 
 	t.Run("--styled --json is an error", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgStyled = true
 		cfgJSON = true
 		_, err := resolveFormat()
@@ -500,7 +500,7 @@ func TestResolveFormatStyledMarkdown(t *testing.T) {
 	})
 
 	t.Run("--markdown --quiet is an error", func(t *testing.T) {
-		ResetTestMode()
+		resetTest()
 		cfgMarkdown = true
 		cfgQuiet = true
 		_, err := resolveFormat()
@@ -529,8 +529,8 @@ func TestSetupBlockedInMachineMode(t *testing.T) {
 		{"quiet", func() { cfgQuiet = true }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			defer ResetTestMode()
-			ResetTestMode()
+			defer resetTest()
+			resetTest()
 			tc.set()
 			err := runSetup(setupCmd, nil)
 			if err == nil {
@@ -544,8 +544,8 @@ func TestSetupBlockedInMachineMode(t *testing.T) {
 }
 
 func TestSkillPrintsInMachineMode(t *testing.T) {
-	defer ResetTestMode()
-	ResetTestMode()
+	defer resetTest()
+	resetTest()
 	cfgAgent = true
 
 	var buf bytes.Buffer
@@ -573,9 +573,9 @@ func TestLimitFlag(t *testing.T) {
 			},
 		}
 
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgLimit = 2
 		err := boardListCmd.RunE(boardListCmd, []string{})
@@ -606,9 +606,9 @@ func TestLimitFlag(t *testing.T) {
 			},
 		}
 
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgLimit = 1
 		err := pinListCmd.RunE(pinListCmd, []string{})
@@ -635,9 +635,9 @@ func TestLimitFlag(t *testing.T) {
 			},
 		}
 
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgLimit = 2
 		err := pinListCmd.RunE(pinListCmd, []string{})
@@ -660,9 +660,9 @@ func TestLimitFlag(t *testing.T) {
 			Data:       items,
 		}
 
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgLimit = 5
 		err := boardListCmd.RunE(boardListCmd, []string{})
@@ -687,9 +687,9 @@ func TestLimitFlag(t *testing.T) {
 			},
 		}
 
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgLimit = 10
 		err := pinListCmd.RunE(pinListCmd, []string{})
@@ -703,9 +703,9 @@ func TestLimitFlag(t *testing.T) {
 
 	t.Run("--limit and --all is an error", func(t *testing.T) {
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgLimit = 5
 		boardListAll = true
@@ -730,9 +730,9 @@ func TestLimitFlag(t *testing.T) {
 			},
 		}
 
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := boardListCmd.RunE(boardListCmd, []string{})
 		if err != nil {

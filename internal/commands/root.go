@@ -7,9 +7,11 @@ import (
 	stderrors "errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/basecamp/cli/credstore"
 	"github.com/basecamp/cli/output"
@@ -18,6 +20,7 @@ import (
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"github.com/basecamp/fizzy-cli/internal/errors"
 	"github.com/basecamp/fizzy-cli/internal/render"
+	fizzy "github.com/basecamp/fizzy-sdk/go/pkg/fizzy"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
@@ -45,6 +48,10 @@ var (
 
 	// Client factory (can be overridden for testing)
 	clientFactory func() client.API
+
+	// SDK client
+	sdk        *fizzy.Client
+	sdkAccount func() *fizzy.AccountClient
 
 	// Credential store
 	creds *credstore.Store
@@ -125,6 +132,15 @@ Use fizzy to manage boards, cards, comments, and more from your terminal.`,
 		// FIZZY_DEBUG enables verbose output
 		if os.Getenv("FIZZY_DEBUG") != "" {
 			cfgVerbose = true
+		}
+
+		// Initialize SDK client (skip if already set by test mode)
+		if sdk == nil {
+			if err := initSDK(cmd, cfg.APIURL, cfg.Token, cfg.Account); err != nil {
+				// Non-fatal: commands that don't need the SDK (e.g. help, version) can proceed.
+				// Commands that call getSDK() will return the stored initialization error.
+				errSDKInit = err
+			}
 		}
 
 		return nil
@@ -246,6 +262,7 @@ func init() {
 }
 
 // getClient returns an API client configured from global settings.
+// Deprecated: Use getSDK() for new code.
 func getClient() client.API {
 	if clientFactory != nil {
 		return clientFactory()
@@ -255,8 +272,155 @@ func getClient() client.API {
 	return c
 }
 
+// errSDKInit stores any error from SDK initialization so commands can return it.
+var errSDKInit error
+
+// getSDK returns an SDK AccountClient bound to the configured account.
+func getSDK() *fizzy.AccountClient {
+	return sdkAccount()
+}
+
+// getSDKClient returns the root SDK Client (for account-independent operations).
+func getSDKClient() *fizzy.Client {
+	return sdk
+}
+
+// requireSDK returns the SDK init error if the SDK failed to initialize.
+// Commands that use getSDK()/getSDKClient() should call this first.
+func requireSDK() error {
+	if errSDKInit != nil {
+		return errSDKInit
+	}
+	return nil
+}
+
+// initSDK creates the SDK client, guarding against panics from HTTPS validation.
+func initSDK(cmd *cobra.Command, apiURL, token, account string) (initErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			initErr = &output.Error{
+				Code:    output.CodeNetwork,
+				Message: fmt.Sprintf("Cannot initialize SDK: %v", r),
+				Hint:    "Non-localhost API URLs must use HTTPS. Update your config with 'fizzy setup'.",
+			}
+		}
+	}()
+
+	sdkCfg := &fizzy.Config{
+		BaseURL: apiURL,
+	}
+	var opts []fizzy.ClientOption
+	opts = append(opts, fizzy.WithUserAgent("fizzy-cli/"+cmd.Root().Version))
+	if cfgVerbose {
+		opts = append(opts, fizzy.WithHooks(fizzy.NewSlogHooks(slog.New(slog.NewTextHandler(os.Stderr, nil)))))
+	}
+	sdk = fizzy.NewClient(sdkCfg, &fizzy.StaticTokenProvider{Token: token}, opts...)
+	sdkAccount = func() *fizzy.AccountClient {
+		return sdk.ForAccount(account)
+	}
+	return nil
+}
+
+// normalizeAny converts any value to map[string]any or []map[string]any
+// via JSON round-trip. Handles typed structs (e.g. *generated.Board),
+// typed slices (e.g. []generated.Card), json.RawMessage, and plain
+// map/slice types that are already in the right shape.
+func normalizeAny(v any) any {
+	if v == nil {
+		return nil
+	}
+	switch d := v.(type) {
+	case json.RawMessage:
+		if len(d) == 0 {
+			return nil
+		}
+		var parsed any
+		if json.Unmarshal(d, &parsed) != nil {
+			return nil
+		}
+		return normalizeAny(parsed)
+	case map[string]any:
+		return d
+	case []map[string]any:
+		return d
+	case []any:
+		maps := make([]map[string]any, 0, len(d))
+		for _, item := range d {
+			if m, ok := item.(map[string]any); ok {
+				maps = append(maps, m)
+			} else {
+				return v // mixed types, return as-is
+			}
+		}
+		return maps
+	}
+	// Typed struct or slice — JSON round-trip
+	b, err := json.Marshal(v)
+	if err != nil {
+		return v
+	}
+	var result any
+	if json.Unmarshal(b, &result) != nil {
+		return v
+	}
+	return normalizeAny(result)
+}
+
+// jsonAnySlice converts []json.RawMessage (from GetAll pagination) to []any.
+func jsonAnySlice(items []json.RawMessage) any {
+	maps := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		var m map[string]any
+		if json.Unmarshal(item, &m) == nil {
+			maps = append(maps, m)
+		}
+	}
+	return maps
+}
+
+// toSliceAny converts []map[string]any or []any to []any for iteration.
+func toSliceAny(v any) []any {
+	switch d := v.(type) {
+	case []any:
+		return d
+	case []map[string]any:
+		result := make([]any, len(d))
+		for i, m := range d {
+			result[i] = m
+		}
+		return result
+	}
+	return nil
+}
+
+// parseSDKLinkNext extracts the next page URL from SDK response Link headers.
+func parseSDKLinkNext(resp *fizzy.Response) string {
+	if resp == nil {
+		return ""
+	}
+	linkHeader := resp.Headers.Get("Link")
+	if linkHeader == "" {
+		return ""
+	}
+	// Parse Link header for rel="next"
+	for _, part := range strings.Split(linkHeader, ",") {
+		part = strings.TrimSpace(part)
+		if strings.Contains(part, `rel="next"`) {
+			start := strings.Index(part, "<")
+			end := strings.Index(part, ">")
+			if start >= 0 && end > start {
+				return part[start+1 : end]
+			}
+		}
+	}
+	return ""
+}
+
 // requireAuth checks that we have authentication configured.
 func requireAuth() error {
+	if err := requireSDK(); err != nil {
+		return err
+	}
 	if cfg.Token == "" {
 		return errors.NewAuthError("No API token configured. Run 'fizzy auth login TOKEN' or set FIZZY_TOKEN")
 	}
@@ -332,12 +496,6 @@ func captureResponse() {
 // printSuccess prints a success response.
 func printSuccess(data any) {
 	_ = out.OK(data)
-	captureResponse()
-}
-
-// printSuccessWithLocation prints a success response with location.
-func printSuccessWithLocation(location string) {
-	_ = out.OK(nil, output.WithContext("location", location))
 	captureResponse()
 }
 
@@ -535,6 +693,9 @@ func toMaps(data any) []map[string]any {
 	if data == nil {
 		return nil
 	}
+	if maps, ok := data.([]map[string]any); ok {
+		return maps
+	}
 	if slice, ok := data.([]any); ok {
 		result := make([]map[string]any, 0, len(slice))
 		for _, item := range slice {
@@ -557,8 +718,18 @@ func toMaps(data any) []map[string]any {
 }
 
 // toMap converts any (expected map[string]any) to map[string]any.
+// Falls back to JSON round-trip for typed structs.
 func toMap(data any) map[string]any {
 	if m, ok := data.(map[string]any); ok {
+		return m
+	}
+	// JSON round-trip for typed structs
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil
+	}
+	var m map[string]any
+	if json.Unmarshal(b, &m) == nil {
 		return m
 	}
 	return nil
@@ -834,6 +1005,16 @@ func ensureProfile(name, baseURL, board string) {
 	}
 }
 
+// SetTestSDK configures the commands package for SDK-based testing.
+// Pass an httptest.Server URL and the SDK will be created pointing at it.
+func SetTestSDK(baseURL string) {
+	sdkCfg := &fizzy.Config{BaseURL: baseURL}
+	sdk = fizzy.NewClient(sdkCfg, &fizzy.StaticTokenProvider{Token: "test-token"})
+	sdkAccount = func() *fizzy.AccountClient {
+		return sdk.ForAccount("test-account")
+	}
+}
+
 // SetTestCreds sets the credential store for testing.
 func SetTestCreds(store *credstore.Store) {
 	creds = store
@@ -856,6 +1037,9 @@ func SetTestConfig(token, account, apiURL string) {
 // ResetTestMode resets the test mode configuration.
 func ResetTestMode() {
 	clientFactory = nil
+	sdk = nil
+	sdkAccount = nil
+	errSDKInit = nil
 	lastResult = nil
 	lastRawOutput = ""
 	cfg = nil

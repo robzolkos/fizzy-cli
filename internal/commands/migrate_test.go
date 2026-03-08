@@ -9,9 +9,9 @@ import (
 func TestMigrateBoardValidation(t *testing.T) {
 	t.Run("requires authentication", func(t *testing.T) {
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("", "account", "https://api.example.com") // No token
-		defer ResetTestMode()
+		defer resetTest()
 
 		migrateBoardFrom = "source"
 		migrateBoardTo = "target"
@@ -26,9 +26,9 @@ func TestMigrateBoardValidation(t *testing.T) {
 
 	t.Run("requires --from flag", func(t *testing.T) {
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		migrateBoardFrom = ""
 		migrateBoardTo = "target"
@@ -43,9 +43,9 @@ func TestMigrateBoardValidation(t *testing.T) {
 
 	t.Run("requires --to flag", func(t *testing.T) {
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		migrateBoardFrom = "source"
 		migrateBoardTo = ""
@@ -60,9 +60,9 @@ func TestMigrateBoardValidation(t *testing.T) {
 
 	t.Run("rejects same source and target account", func(t *testing.T) {
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		migrateBoardFrom = "same-account"
 		migrateBoardTo = "same-account"

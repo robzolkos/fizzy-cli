@@ -2,6 +2,7 @@ package commands
 
 import (
 	stderrors "errors"
+	"strings"
 	"testing"
 
 	"github.com/basecamp/fizzy-cli/internal/client"
@@ -21,6 +22,9 @@ type MockClient struct {
 	UploadFileResponse        *client.APIResponse
 
 	PatchMultipartResponse *client.APIResponse
+
+	// Path-based GET response routing (checked before GetResponse)
+	getPathResponses map[string]*client.APIResponse
 
 	// Errors to return for each method
 	GetError               error
@@ -68,7 +72,7 @@ func NewMockClient() *MockClient {
 		},
 		PostResponse: &client.APIResponse{
 			StatusCode: 201,
-			Location:   "https://api.example.com/resource/123",
+			Location:   "/resource/123",
 			Data:       map[string]any{"id": "123"},
 		},
 		PatchResponse: &client.APIResponse{
@@ -107,7 +111,30 @@ func (m *MockClient) Get(path string) (*client.APIResponse, error) {
 	if m.GetError != nil {
 		return nil, m.GetError
 	}
+	// Check path-based responses first
+	if m.getPathResponses != nil {
+		if resp, ok := m.getPathResponses[path]; ok {
+			return resp, nil
+		}
+		// Try prefix matching (strip query string)
+		basePath := path
+		if idx := strings.Index(basePath, "?"); idx >= 0 {
+			basePath = basePath[:idx]
+		}
+		if resp, ok := m.getPathResponses[basePath]; ok {
+			return resp, nil
+		}
+	}
 	return m.GetResponse, nil
+}
+
+// OnGet sets a response for a specific GET path.
+func (m *MockClient) OnGet(path string, resp *client.APIResponse) *MockClient {
+	if m.getPathResponses == nil {
+		m.getPathResponses = make(map[string]*client.APIResponse)
+	}
+	m.getPathResponses[path] = resp
+	return m
 }
 
 func (m *MockClient) Post(path string, body any) (*client.APIResponse, error) {

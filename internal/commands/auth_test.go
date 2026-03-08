@@ -19,9 +19,9 @@ func TestAuthLogin(t *testing.T) {
 		defer config.ResetTestConfigDir()
 
 		mock := NewMockClient()
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("", "test-account", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authLoginCmd.RunE(authLoginCmd, []string{"test-token-123"})
 		assertExitCode(t, err, 0)
@@ -65,11 +65,11 @@ func TestAuthLogin(t *testing.T) {
 		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
 
 		mock := NewMockClient()
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authLoginCmd.RunE(authLoginCmd, []string{"cred-token-456"})
 		assertExitCode(t, err, 0)
@@ -113,9 +113,9 @@ func TestAuthLogin(t *testing.T) {
 
 	t.Run("requires profile to be configured", func(t *testing.T) {
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authLoginCmd.RunE(authLoginCmd, []string{"some-token"})
 		if err == nil {
@@ -137,9 +137,9 @@ func TestAuthLogin(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), existingData, 0600)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("", "existing-account", "https://custom.api.com")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authLoginCmd.RunE(authLoginCmd, []string{"new-token"})
 		assertExitCode(t, err, 0)
@@ -187,11 +187,11 @@ func TestAuthLogout(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("my-token", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		// Reset the --all flag
 		authLogoutCmd.Flags().Set("all", "false")
@@ -237,11 +237,11 @@ func TestAuthLogout(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("my-token", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		authLogoutCmd.Flags().Set("all", "false")
 		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
@@ -289,11 +289,11 @@ func TestAuthLogout(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("token1", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		authLogoutCmd.Flags().Set("all", "true")
 		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
@@ -314,9 +314,9 @@ func TestAuthLogout(t *testing.T) {
 		defer config.ResetTestConfigDir()
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestConfig("", "some-profile", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		authLogoutCmd.Flags().Set("all", "false")
 		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
@@ -335,8 +335,8 @@ func TestAuthStatus(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), []byte(configData), 0600)
 
 		mock := NewMockClient()
-		result := SetTestMode(mock)
-		defer ResetTestMode()
+		result := SetTestModeWithSDK(mock)
+		defer resetTest()
 
 		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
@@ -366,8 +366,8 @@ func TestAuthStatus(t *testing.T) {
 		defer config.ResetTestConfigDir()
 
 		mock := NewMockClient()
-		result := SetTestMode(mock)
-		defer ResetTestMode()
+		result := SetTestModeWithSDK(mock)
+		defer resetTest()
 
 		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
@@ -383,7 +383,7 @@ func TestAuthStatus(t *testing.T) {
 
 	t.Run("shows using_keyring field when credstore is set", func(t *testing.T) {
 		mock := NewMockClient()
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
 
 		// Create a file-based credstore (env var disables keyring probe)
@@ -396,7 +396,7 @@ func TestAuthStatus(t *testing.T) {
 			FallbackDir:   tempDir,
 		})
 		SetTestCreds(store)
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
@@ -420,8 +420,8 @@ func TestAuthStatus(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), []byte(configData), 0600)
 
 		mock := NewMockClient()
-		result := SetTestMode(mock)
-		defer ResetTestMode()
+		result := SetTestModeWithSDK(mock)
+		defer resetTest()
 
 		err := authStatusCmd.RunE(authStatusCmd, []string{})
 		assertExitCode(t, err, 0)
@@ -456,10 +456,10 @@ func TestAuthList(t *testing.T) {
 		store.Save("profile:other", t2)
 
 		mock := NewMockClient()
-		result := SetTestMode(mock)
+		result := SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authListCmd.RunE(authListCmd, []string{})
 		assertExitCode(t, err, 0)
@@ -493,8 +493,8 @@ func TestAuthList(t *testing.T) {
 
 	t.Run("shows empty list when no profiles", func(t *testing.T) {
 		mock := NewMockClient()
-		result := SetTestMode(mock)
-		defer ResetTestMode()
+		result := SetTestModeWithSDK(mock)
+		defer resetTest()
 
 		err := authListCmd.RunE(authListCmd, []string{})
 		assertExitCode(t, err, 0)
@@ -538,11 +538,11 @@ func TestAuthSwitch(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("acme-token", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authSwitchCmd.RunE(authSwitchCmd, []string{"other"})
 		assertExitCode(t, err, 0)
@@ -578,10 +578,10 @@ func TestAuthSwitch(t *testing.T) {
 		})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		err := authSwitchCmd.RunE(authSwitchCmd, []string{"nonexistent"})
 		if err == nil {
@@ -613,11 +613,11 @@ func TestProfileFlagTokenSelection(t *testing.T) {
 		store.Save("profile:other", t2)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		// Simulate --profile other flag: resolve profile first, then token
 		cfgProfile = "other"
@@ -657,11 +657,11 @@ func TestProfileFlagTokenSelection(t *testing.T) {
 		store.Save("profile:other", t2)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		// No --profile flag, "acme" is default (first created)
 		cfgProfile = ""
@@ -682,10 +682,10 @@ func TestProfileFlagTokenSelection(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		cfgProfile = "nonexistent"
 		defer func() { cfgProfile = "" }()
@@ -702,10 +702,10 @@ func TestProfileFlagTokenSelection(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://app.fizzy.do"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		os.Setenv("FIZZY_PROFILE", "nonexistent")
 		defer os.Unsetenv("FIZZY_PROFILE")
@@ -743,11 +743,11 @@ func TestTokenMigrationToProfile(t *testing.T) {
 		store.Save("token", legacyToken)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		resolveToken()
 
@@ -803,11 +803,11 @@ func TestTokenMigrationToProfile(t *testing.T) {
 		store.Save("token:acme", acctToken)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		resolveToken()
 
@@ -850,11 +850,11 @@ func TestTokenMigrationToProfile(t *testing.T) {
 		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("migrate-me", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		resolveToken()
 
@@ -899,11 +899,11 @@ func TestTokenMigrationToProfile(t *testing.T) {
 		store.Save("profile:acme", credToken)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		resolveToken()
 
@@ -935,12 +935,12 @@ func TestTokenMigrationToProfile(t *testing.T) {
 		profileStore := profile.NewStore(filepath.Join(profileDir, "config.json"))
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		// cfg.Token set via env-like source (not from global YAML)
 		SetTestConfig("env-token", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		resolveToken()
 
@@ -958,10 +958,10 @@ func TestProfileResolution(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "staging", BaseURL: "https://staging.fizzy.do"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		os.Setenv("FIZZY_PROFILE", "staging")
 		defer os.Unsetenv("FIZZY_PROFILE")
@@ -984,10 +984,10 @@ func TestProfileResolution(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "custom", BaseURL: "https://custom.example.com"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		// Single profile auto-selects
 		if err := resolveProfile(); err != nil {
@@ -1005,10 +1005,10 @@ func TestProfileResolution(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "custom", BaseURL: "https://profile.example.com"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		os.Setenv("FIZZY_API_URL", "https://env.example.com")
 		defer os.Unsetenv("FIZZY_API_URL")
@@ -1037,10 +1037,10 @@ func TestProfileResolution(t *testing.T) {
 		})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		os.Setenv("FIZZY_BOARD", "env-board")
 		defer os.Unsetenv("FIZZY_BOARD")
@@ -1069,10 +1069,10 @@ func TestProfileResolution(t *testing.T) {
 		})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		if err := resolveProfile(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -1089,10 +1089,10 @@ func TestProfileResolution(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "legacy-acct", BaseURL: "https://app.fizzy.do"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
 		SetTestConfig("", "", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		os.Setenv("FIZZY_ACCOUNT", "legacy-acct")
 		defer os.Unsetenv("FIZZY_ACCOUNT")
@@ -1114,9 +1114,9 @@ func TestEnsureProfileUpdatesExisting(t *testing.T) {
 		profileStore.Create(&profile.Profile{Name: "acme", BaseURL: "https://old.example.com"})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
-		defer ResetTestMode()
+		defer resetTest()
 
 		// Call ensureProfile with new settings
 		ensureProfile("acme", "https://new.example.com", "new-board")
@@ -1149,9 +1149,9 @@ func TestEnsureProfileUpdatesExisting(t *testing.T) {
 		})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
-		defer ResetTestMode()
+		defer resetTest()
 
 		// Re-signup with default URL should overwrite the self-hosted URL
 		ensureProfile("acme", config.DefaultAPIURL, "")
@@ -1182,9 +1182,9 @@ func TestEnsureProfileUpdatesExisting(t *testing.T) {
 		})
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestProfiles(profileStore)
-		defer ResetTestMode()
+		defer resetTest()
 
 		// Empty baseURL should preserve the existing one
 		ensureProfile("acme", "", "")
@@ -1229,11 +1229,11 @@ func TestAuthLogoutAllCleansLegacyKeys(t *testing.T) {
 		os.WriteFile(filepath.Join(tempDir, "config.yaml"), cfgData, 0600)
 
 		mock := NewMockClient()
-		SetTestMode(mock)
+		SetTestModeWithSDK(mock)
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
 		SetTestConfig("my-token", "acme", "https://app.fizzy.do")
-		defer ResetTestMode()
+		defer resetTest()
 
 		authLogoutCmd.Flags().Set("all", "true")
 		err := authLogoutCmd.RunE(authLogoutCmd, []string{})
@@ -1304,8 +1304,8 @@ func TestPrecedenceChainIntegration(t *testing.T) {
 
 		// Step 2: wire up package state as PersistentPreRunE would
 		mock := NewMockClient()
-		SetTestMode(mock)
-		defer ResetTestMode()
+		SetTestModeWithSDK(mock)
+		defer resetTest()
 		cfg = loaded
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
@@ -1373,8 +1373,8 @@ func TestPrecedenceChainIntegration(t *testing.T) {
 
 		// Step 2: wire up
 		mock := NewMockClient()
-		SetTestMode(mock)
-		defer ResetTestMode()
+		SetTestModeWithSDK(mock)
+		defer resetTest()
 		cfg = loaded
 		SetTestCreds(store)
 		SetTestProfiles(profileStore)
@@ -1418,8 +1418,8 @@ func TestPrecedenceChainIntegration(t *testing.T) {
 		loaded := config.Load()
 
 		mock := NewMockClient()
-		SetTestMode(mock)
-		defer ResetTestMode()
+		SetTestModeWithSDK(mock)
+		defer resetTest()
 		cfg = loaded
 		SetTestProfiles(profileStore)
 
