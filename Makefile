@@ -156,11 +156,11 @@ replace-check:
 # Security suite
 security: lint vuln secrets
 
-# Local CI gate
-check: fmt-check vet lint test-unit tidy-check
+# Local CI gate (fmt, vet, lint, tidy, race-test)
+check: fmt-check vet lint tidy-check race-test
 
 # Release preflight
-release-check: check replace-check vuln race-test
+release-check: check replace-check vuln
 
 # Release (delegates to script)
 release:

@@ -38,18 +38,18 @@ const CompactBannerWidth = 41
 type BannerStyle int
 
 const (
-	// BannerCompact renders popsicle art with "Fizzy\nby 37signals" to the right.
-	BannerCompact BannerStyle = iota
 	// BannerFull renders the full 80-column banner with brighter colors and tagline.
-	BannerFull
+	BannerFull BannerStyle = iota
+	// BannerCompact renders popsicle art with "Fizzy\nby 37signals" to the right.
+	BannerCompact
 )
 
 // GetBannerStyle returns the configured banner style from FIZZY_BANNER.
 func GetBannerStyle() BannerStyle {
-	if os.Getenv("FIZZY_BANNER") == "full" {
-		return BannerFull
+	if os.Getenv("FIZZY_BANNER") == "compact" {
+		return BannerCompact
 	}
-	return BannerCompact
+	return BannerFull
 }
 
 const blankBraille = '\u2800' // ⠀
