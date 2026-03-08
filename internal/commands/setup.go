@@ -8,6 +8,7 @@ import (
 	"github.com/basecamp/fizzy-cli/internal/client"
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"github.com/basecamp/fizzy-cli/internal/errors"
+	"github.com/basecamp/fizzy-cli/internal/tui"
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 )
@@ -41,10 +42,11 @@ func runSetup(cmd *cobra.Command, args []string) error {
 		return output.ErrUsageHint("setup requires an interactive terminal", "Run without --agent/--json/--quiet or in a TTY")
 	}
 
-	printBanner()
-	fmt.Println()
-	fmt.Println("Welcome to Fizzy CLI setup!")
-	fmt.Println()
+	aw, wait := tui.AnimateBannerAsync(cmd.ErrOrStderr())
+	fmt.Fprintln(aw)
+	fmt.Fprintln(aw, "Welcome to Fizzy CLI setup!")
+	fmt.Fprintln(aw)
+	wait()
 
 	// Ask if user has an account before checking existing config
 	var hasAccount string

@@ -18,6 +18,7 @@ import (
 	"github.com/basecamp/cli/output"
 	"github.com/basecamp/fizzy-cli/internal/config"
 	"github.com/basecamp/fizzy-cli/internal/errors"
+	"github.com/basecamp/fizzy-cli/internal/tui"
 	"github.com/charmbracelet/huh"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
@@ -107,10 +108,11 @@ func runSignup(cmd *cobra.Command, args []string) error {
 		return output.ErrUsageHint("signup requires an interactive terminal — use subcommands (start, verify, complete) for programmatic access", "Run without --agent/--json/--quiet or in a TTY")
 	}
 
-	printBanner()
-	fmt.Println()
-	fmt.Println("Welcome to Fizzy CLI signup!")
-	fmt.Println()
+	aw, wait := tui.AnimateBannerAsync(cmd.ErrOrStderr())
+	fmt.Fprintln(aw)
+	fmt.Fprintln(aw, "Welcome to Fizzy CLI signup!")
+	fmt.Fprintln(aw)
+	wait()
 
 	return signupWizard()
 }

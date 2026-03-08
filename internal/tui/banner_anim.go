@@ -651,7 +651,21 @@ func renderCompactPaintFrame(w io.Writer, grid [][]rune, revealFrame [][]int, fr
 // previous write. Returns the number of rows and the updated pending width.
 func visualLines(s string, cols, pendingW int) (rows, newPendingW int) {
 	if cols <= 0 {
-		return strings.Count(s, "\n"), 0
+		// Terminal width unknown: count hard newlines and track the visual
+		// width on the last line so async animations can restore the cursor
+		// column correctly.
+		rows = strings.Count(s, "\n")
+		for _, seg := range strings.SplitAfter(s, "\n") {
+			if seg == "" {
+				continue
+			}
+			if strings.HasSuffix(seg, "\n") {
+				pendingW = 0
+			} else {
+				pendingW += lipgloss.Width(seg)
+			}
+		}
+		return rows, pendingW
 	}
 
 	for _, seg := range strings.SplitAfter(s, "\n") {
