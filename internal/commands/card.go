@@ -320,6 +320,16 @@ var cardCreateCmd = &cobra.Command{
 		}
 
 		items := normalizeAny(data)
+		location := resp.Headers.Get("Location")
+
+		// If the API returned an empty body with a Location header (201 Created),
+		// follow the Location to fetch the created resource.
+		if items == nil && location != "" {
+			followData, _, followErr := ac.Cards().Get(cmd.Context(), locationCardNumber(location))
+			if followErr == nil {
+				items = normalizeAny(followData)
+			}
+		}
 
 		// Extract card number from response
 		cardNumber := ""
@@ -339,7 +349,7 @@ var cardCreateCmd = &cobra.Command{
 			}
 		}
 
-		if location := resp.Headers.Get("Location"); location != "" {
+		if location != "" {
 			printMutationWithLocation(items, location, breadcrumbs)
 		} else {
 			printMutation(items, "", breadcrumbs)
@@ -962,6 +972,22 @@ var cardUngoldenCmd = &cobra.Command{
 		printMutation(map[string]any{}, "", breadcrumbs)
 		return nil
 	},
+}
+
+// locationCardNumber extracts a card number from a Location header path.
+// Example: "/account/cards/42.json" → "42"
+func locationCardNumber(location string) string {
+	// Strip query string and fragment
+	if i := strings.IndexAny(location, "?#"); i >= 0 {
+		location = location[:i]
+	}
+	// Strip trailing .json
+	location = strings.TrimSuffix(location, ".json")
+	// Take the last path segment
+	if i := strings.LastIndex(location, "/"); i >= 0 {
+		return location[i+1:]
+	}
+	return location
 }
 
 func init() {

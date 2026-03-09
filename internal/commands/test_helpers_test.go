@@ -134,7 +134,7 @@ func mockHandler(mock *MockClient) http.Handler {
 				statusCode = outputErr.HTTPStatus
 			} else if strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "Not found") {
 				statusCode = http.StatusNotFound
-			} else if strings.Contains(errMsg, "nauthorized") {
+			} else if strings.Contains(strings.ToLower(errMsg), "unauthorized") {
 				statusCode = http.StatusUnauthorized
 			}
 			w.Header().Set("Content-Type", "application/json")

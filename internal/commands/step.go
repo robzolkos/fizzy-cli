@@ -122,21 +122,35 @@ var stepUpdateCmd = &cobra.Command{
 		stepID := args[0]
 		cardNumber := stepUpdateCard
 
-		req := &generated.UpdateStepRequest{}
-		if stepUpdateContent != "" {
-			req.Content = stepUpdateContent
-		}
-		if stepUpdateCompleted {
-			req.Completed = true
-		}
-		if stepUpdateNotCompleted {
-			req.Completed = false
-		}
-
 		ac := getSDK()
-		data, _, err := ac.Steps().Update(cmd.Context(), cardNumber, stepID, req)
-		if err != nil {
-			return convertSDKError(err)
+
+		// When --not_completed is set, we must send `"completed": false` explicitly.
+		// The SDK's UpdateStepRequest uses `omitempty` on Completed (bool), which
+		// silently drops false values. Use a raw Patch with map body for this case.
+		var data any
+		if stepUpdateNotCompleted {
+			body := map[string]any{"completed": false}
+			if stepUpdateContent != "" {
+				body["content"] = stepUpdateContent
+			}
+			resp, patchErr := ac.Patch(cmd.Context(), fmt.Sprintf("/cards/%s/steps/%s", cardNumber, stepID), body)
+			if patchErr != nil {
+				return convertSDKError(patchErr)
+			}
+			data = normalizeAny(resp.Data)
+		} else {
+			req := &generated.UpdateStepRequest{}
+			if stepUpdateContent != "" {
+				req.Content = stepUpdateContent
+			}
+			if stepUpdateCompleted {
+				req.Completed = true
+			}
+			var updateErr error
+			data, _, updateErr = ac.Steps().Update(cmd.Context(), cardNumber, stepID, req)
+			if updateErr != nil {
+				return convertSDKError(updateErr)
+			}
 		}
 
 		// Build breadcrumbs

@@ -417,10 +417,9 @@ func parseSDKLinkNext(resp *fizzy.Response) string {
 }
 
 // requireAuth checks that we have authentication configured.
+// Does NOT require the SDK — legacy commands (upload, download, multipart)
+// only need a valid token and account, not an initialized SDK client.
 func requireAuth() error {
-	if err := requireSDK(); err != nil {
-		return err
-	}
 	if cfg.Token == "" {
 		return errors.NewAuthError("No API token configured. Run 'fizzy auth login TOKEN' or set FIZZY_TOKEN")
 	}
@@ -435,12 +434,15 @@ func requireAccount() error {
 	return nil
 }
 
-// requireAuthAndAccount checks both auth and account.
+// requireAuthAndAccount checks auth, account, and SDK initialization.
 func requireAuthAndAccount() error {
 	if err := requireAuth(); err != nil {
 		return err
 	}
-	return requireAccount()
+	if err := requireAccount(); err != nil {
+		return err
+	}
+	return requireSDK()
 }
 
 func effectiveConfig() *config.Config {

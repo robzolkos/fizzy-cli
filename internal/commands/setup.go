@@ -356,7 +356,11 @@ func parseAccounts(data json.RawMessage) ([]Account, error) {
 
 	accounts := make([]Account, 0, len(accountsList))
 	for _, accMap := range accountsList {
-		id := fmt.Sprintf("%v", accMap["id"])
+		idVal, ok := accMap["id"]
+		if !ok || idVal == nil {
+			continue
+		}
+		id := fmt.Sprintf("%v", idVal)
 		name, _ := accMap["name"].(string)
 		slug, _ := accMap["slug"].(string)
 

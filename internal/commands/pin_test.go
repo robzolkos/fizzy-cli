@@ -184,13 +184,13 @@ func TestPinList(t *testing.T) {
 
 	t.Run("handles API error", func(t *testing.T) {
 		mock := NewMockClient()
-		mock.GetError = errors.NewNotFoundError("Pins not found")
+		mock.GetError = errors.NewValidationError("invalid request")
 
 		SetTestModeWithSDK(mock)
 		SetTestConfig("token", "account", "https://api.example.com")
 		defer resetTest()
 
 		err := pinListCmd.RunE(pinListCmd, []string{})
-		assertExitCode(t, err, errors.ExitNotFound)
+		assertExitCode(t, err, errors.ExitValidation)
 	})
 }

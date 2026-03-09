@@ -226,8 +226,7 @@ func TestValidateToken(t *testing.T) {
 		// The actual API call is tested via e2e tests
 
 		// For now, test that parseAccounts works correctly
-		rawData, _ := json.Marshal(mock.GetResponse.Data)
-		accounts, err := parseAccounts(json.RawMessage(rawData))
+		accounts, err := parseAccounts(toJSON(t, mock.GetResponse.Data))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

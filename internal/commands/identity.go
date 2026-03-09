@@ -18,6 +18,9 @@ var identityShowCmd = &cobra.Command{
 		if err := requireAuth(); err != nil {
 			return err
 		}
+		if err := requireSDK(); err != nil {
+			return err
+		}
 
 		data, _, err := getSDKClient().Identity().GetMyIdentity(cmd.Context())
 		if err != nil {
