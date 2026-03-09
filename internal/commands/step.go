@@ -137,7 +137,7 @@ var stepUpdateCmd = &cobra.Command{
 			if patchErr != nil {
 				return convertSDKError(patchErr)
 			}
-			data = normalizeAny(resp.Data)
+			data = resp.Data
 		} else {
 			req := &generated.UpdateStepRequest{}
 			if stepUpdateContent != "" {

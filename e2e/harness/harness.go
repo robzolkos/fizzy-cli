@@ -161,12 +161,19 @@ func New(t *testing.T) *Harness {
 func NewWithConfig(t *testing.T, cfg *Config) *Harness {
 	t.Helper()
 
+	tmpDir, err := os.MkdirTemp("", "fizzy-e2e-*")
+	if err != nil {
+		t.Fatalf("failed to create temp config dir: %v", err)
+	}
+	t.Cleanup(func() { os.RemoveAll(tmpDir) })
+
 	return &Harness{
 		BinaryPath: cfg.BinaryPath,
 		Token:      cfg.Token,
 		Account:    cfg.Account,
 		APIURL:     cfg.APIURL,
 		Cleanup:    NewCleanupTracker(),
+		configHome: tmpDir,
 		t:          t,
 	}
 }

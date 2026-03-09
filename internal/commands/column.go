@@ -45,7 +45,7 @@ var columnListCmd = &cobra.Command{
 			return nil
 		}
 
-		cols := make([]any, 0, len(dataSlice)+3)
+		cols := make([]any, 0, 3+len(dataSlice)) //nolint:gosec // len returns non-negative int; +3 cannot overflow
 		cols = append(cols, pseudoColumnObject(pseudoColumnNotNow), pseudoColumnObject(pseudoColumnMaybe))
 		cols = append(cols, dataSlice...)
 		cols = append(cols, pseudoColumnObject(pseudoColumnDone))

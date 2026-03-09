@@ -16,23 +16,26 @@ func convertSDKError(err error) error {
 
 	if errors.Is(err, fizzy.ErrCircuitOpen) {
 		return &output.Error{
-			Code:    output.CodeAPI,
-			Message: "Service temporarily unavailable (circuit breaker open)",
-			Hint:    "Try again in a moment",
+			Code:      output.CodeAPI,
+			Message:   "Service temporarily unavailable (circuit breaker open)",
+			Hint:      "Try again in a moment",
+			Retryable: true,
 		}
 	}
 	if errors.Is(err, fizzy.ErrBulkheadFull) {
 		return &output.Error{
-			Code:    output.CodeAPI,
-			Message: "Too many concurrent requests",
-			Hint:    "Try again in a moment",
+			Code:      output.CodeAPI,
+			Message:   "Too many concurrent requests",
+			Hint:      "Try again in a moment",
+			Retryable: true,
 		}
 	}
 	if errors.Is(err, fizzy.ErrRateLimited) {
 		return &output.Error{
-			Code:    output.CodeRateLimit,
-			Message: "Rate limit exceeded",
-			Hint:    "Try again later",
+			Code:      output.CodeRateLimit,
+			Message:   "Rate limit exceeded",
+			Hint:      "Try again later",
+			Retryable: true,
 		}
 	}
 
