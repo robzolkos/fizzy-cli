@@ -22,7 +22,10 @@ type Column struct {
 type Columns []Column
 
 // headerStyle is the style for table headers in styled output.
-var headerStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
+var headerStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).PaddingRight(1)
+
+// cellStyle is the style for table data cells in styled output.
+var cellStyle = lipgloss.NewStyle().PaddingRight(1)
 
 // StyledList renders a slice of maps as a styled terminal table.
 func StyledList(data []map[string]any, cols Columns, summary string) string {
@@ -61,7 +64,7 @@ func StyledList(data []map[string]any, cols Columns, summary string) string {
 			if row == table.HeaderRow {
 				return headerStyle
 			}
-			return lipgloss.NewStyle()
+			return cellStyle
 		})
 
 	var sb strings.Builder
