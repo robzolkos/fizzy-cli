@@ -501,6 +501,11 @@ func printSuccess(data any) {
 	captureResponse()
 }
 
+func printSuccessWithLocation(location string) {
+	_ = out.OK(nil, output.WithContext("location", location))
+	captureResponse()
+}
+
 // breadcrumb creates a single breadcrumb.
 func breadcrumb(action, cmd, description string) Breadcrumb {
 	return Breadcrumb{Action: action, Cmd: cmd, Description: description}
