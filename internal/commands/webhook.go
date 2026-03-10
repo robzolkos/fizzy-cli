@@ -7,6 +7,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var validWebhookActions = []string{
+	"card_assigned",
+	"card_closed",
+	"card_postponed",
+	"card_auto_postponed",
+	"card_board_changed",
+	"card_published",
+	"card_reopened",
+	"card_sent_back_to_triage",
+	"card_triaged",
+	"card_unassigned",
+	"comment_created",
+}
+
 var webhookCmd = &cobra.Command{
 	Use:   "webhook",
 	Short: "Manage webhooks",
@@ -129,11 +143,7 @@ var webhookCreateActions []string
 var webhookCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a webhook",
-	Long: `Creates a new webhook on a board.
-
-Supported actions: card_assigned, card_closed, card_postponed, card_auto_postponed,
-card_board_changed, card_published, card_reopened, card_sent_back_to_triage,
-card_triaged, card_unassigned, comment_created`,
+	Long:  "Creates a new webhook on a board.\n\nSupported actions: " + strings.Join(validWebhookActions, ", "),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := requireAuthAndAccount(); err != nil {
 			return err
@@ -346,7 +356,7 @@ func init() {
 	// Update
 	webhookUpdateCmd.Flags().StringVar(&webhookUpdateBoard, "board", "", "Board ID (required)")
 	webhookUpdateCmd.Flags().StringVar(&webhookUpdateName, "name", "", "Webhook name")
-	webhookUpdateCmd.Flags().StringSliceVar(&webhookUpdateActions, "actions", nil, "Subscribed actions (comma-separated)")
+	webhookUpdateCmd.Flags().StringSliceVar(&webhookUpdateActions, "actions", nil, "Subscribed actions (comma-separated: "+strings.Join(validWebhookActions, ", ")+")")
 	webhookCmd.AddCommand(webhookUpdateCmd)
 
 	// Delete
@@ -356,18 +366,4 @@ func init() {
 	// Reactivate
 	webhookReactivateCmd.Flags().StringVar(&webhookReactivateBoard, "board", "", "Board ID (required)")
 	webhookCmd.AddCommand(webhookReactivateCmd)
-}
-
-var validWebhookActions = []string{
-	"card_assigned",
-	"card_closed",
-	"card_postponed",
-	"card_auto_postponed",
-	"card_board_changed",
-	"card_published",
-	"card_reopened",
-	"card_sent_back_to_triage",
-	"card_triaged",
-	"card_unassigned",
-	"comment_created",
 }
