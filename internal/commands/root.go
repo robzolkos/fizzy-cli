@@ -196,13 +196,11 @@ func Execute() {
 
 		// jq-related errors (validation failures, unsupported commands, conflicts)
 		// must never be fed through the jq filter. Rebuild the output writer
-		// without jq so the error renders cleanly.
+		// without jq so the error renders cleanly. Re-resolve the format to
+		// honor explicit flags like --agent --json.
 		if errors.IsJQError(err) && cfgJQ != "" {
-			format := output.FormatJSON // --jq implies --json
-			if cfgAgent || cfgQuiet {
-				format = output.FormatQuiet
-			}
-			out = output.New(output.Options{Format: format, Writer: os.Stdout})
+			format, _ := resolveFormat()
+			out = output.New(output.Options{Format: format, Writer: outWriter})
 		}
 
 		_ = out.Err(e)
