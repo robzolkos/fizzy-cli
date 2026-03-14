@@ -68,7 +68,9 @@ func (w *jqWriter) Write(p []byte) (int, error) {
 			if err != nil {
 				return 0, errors.ErrJQRuntime(fmt.Errorf("result not serializable: %w", err))
 			}
-			fmt.Fprintln(w.dest, string(raw))
+			if _, err := fmt.Fprintln(w.dest, string(raw)); err != nil {
+				return 0, err
+			}
 		}
 	}
 	return len(p), nil

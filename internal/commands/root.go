@@ -75,21 +75,22 @@ var rootCmd = &cobra.Command{
 Use fizzy to manage boards, cards, comments, and more from your terminal.`,
 	Version: "dev",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Early jq validation: parse + compile before RunE so invalid
-		// expressions are rejected with no side effects.
+		// Early jq validation: check flag conflicts first (actionable message),
+		// then parse + compile before RunE so invalid expressions are rejected
+		// with no side effects.
 		if cfgJQ != "" {
+			if cfgIDsOnly {
+				return errors.ErrJQConflict("--ids-only")
+			}
+			if cfgCount {
+				return errors.ErrJQConflict("--count")
+			}
 			q, err := gojq.Parse(cfgJQ)
 			if err != nil {
 				return errors.ErrJQValidation(err)
 			}
 			if _, err := gojq.Compile(q, gojq.WithEnvironLoader(os.Environ)); err != nil {
 				return errors.ErrJQValidation(err)
-			}
-			if cfgIDsOnly {
-				return errors.ErrJQConflict("--ids-only")
-			}
-			if cfgCount {
-				return errors.ErrJQConflict("--count")
 			}
 		}
 
