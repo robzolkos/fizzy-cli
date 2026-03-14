@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/basecamp/cli/output"
+	"github.com/basecamp/fizzy-cli/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -12,16 +12,11 @@ var versionCmd = &cobra.Command{
 	Short:   "Print version information",
 	Example: "$ fizzy version",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		switch out.EffectiveFormat() {
-		case output.FormatStyled, output.FormatMarkdown:
-			fmt.Fprintf(outWriter, "fizzy version %s\n", rootCmd.Version)
-			captureResponse()
-		default:
-			printSuccess(map[string]any{
-				"version": rootCmd.Version,
-			})
+		if cfgJQ != "" {
+			return errors.ErrJQNotSupported("the version command")
 		}
-		return nil
+		_, err := fmt.Fprintf(cmd.OutOrStdout(), "fizzy version %s\n", rootCmd.Version)
+		return err
 	},
 }
 
