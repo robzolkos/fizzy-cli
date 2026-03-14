@@ -105,7 +105,7 @@ var rootCmd = &cobra.Command{
 			if cfgJQ != "" {
 				jw, err := newJQWriter(&testBuf, cfgJQ)
 				if err != nil {
-					return &output.Error{Code: output.CodeUsage, Message: err.Error()}
+					return err
 				}
 				w = jw
 			}
@@ -116,7 +116,7 @@ var rootCmd = &cobra.Command{
 			if cfgJQ != "" {
 				jw, err := newJQWriter(os.Stdout, cfgJQ)
 				if err != nil {
-					return &output.Error{Code: output.CodeUsage, Message: err.Error()}
+					return err
 				}
 				w = jw
 			}
