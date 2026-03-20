@@ -35,6 +35,6 @@ updates:
         patterns:
           - "*"
     cooldown:
-      default-days: 2
+      default-days: 7
     commit-message:
       prefix: "ci"
