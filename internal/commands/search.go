@@ -42,10 +42,10 @@ var searchCmd = &cobra.Command{
 			params = append(params, "terms[]="+term)
 		}
 
-		// Add optional filters
-		boardID := defaultBoard(searchBoard)
-		if boardID != "" {
-			params = append(params, "board_ids[]="+boardID)
+		// Add optional filters (search is cross-board by default;
+		// only scope to a board when explicitly requested via --board)
+		if searchBoard != "" {
+			params = append(params, "board_ids[]="+searchBoard)
 		}
 		if searchTag != "" {
 			params = append(params, "tag_ids[]="+searchTag)
