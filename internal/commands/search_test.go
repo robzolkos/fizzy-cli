@@ -148,6 +148,58 @@ func TestSearch(t *testing.T) {
 		}
 	})
 
+	t.Run("tag filter works cross-board with default board set", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []any{},
+		}
+
+		SetTestModeWithSDK(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		cfg.Board = "default-board-id"
+		defer resetTest()
+
+		searchTag = "tag-123"
+		err := searchCmd.RunE(searchCmd, []string{"bug"})
+		searchTag = ""
+
+		assertExitCode(t, err, 0)
+		if len(mock.GetWithPaginationCalls) != 1 {
+			t.Fatalf("expected 1 GetWithPagination call, got %d", len(mock.GetWithPaginationCalls))
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug&tag_ids[]=tag-123" {
+			t.Errorf("expected tag filter without board_ids, got '%s'", path)
+		}
+	})
+
+	t.Run("assignee filter works cross-board with default board set", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []any{},
+		}
+
+		SetTestModeWithSDK(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		cfg.Board = "default-board-id"
+		defer resetTest()
+
+		searchAssignee = "user-456"
+		err := searchCmd.RunE(searchCmd, []string{"bug"})
+		searchAssignee = ""
+
+		assertExitCode(t, err, 0)
+		if len(mock.GetWithPaginationCalls) != 1 {
+			t.Fatalf("expected 1 GetWithPagination call, got %d", len(mock.GetWithPaginationCalls))
+		}
+		path := mock.GetWithPaginationCalls[0].Path
+		if path != "/cards.json?terms[]=bug&assignee_ids[]=user-456" {
+			t.Errorf("expected assignee filter without board_ids, got '%s'", path)
+		}
+	})
+
 	t.Run("requires authentication", func(t *testing.T) {
 		mock := NewMockClient()
 		SetTestModeWithSDK(mock)
