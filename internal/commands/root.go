@@ -74,6 +74,7 @@ var rootCmd = &cobra.Command{
 	Long:    `Command-line interface for Fizzy`,
 	Version: "dev",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		outputWriteErr = nil
 		// Early jq validation: check flag conflicts first (actionable message),
 		// then parse + compile before RunE so invalid expressions are rejected
 		// with no side effects. The compiled code is reused below to avoid
@@ -167,6 +168,14 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		return nil
+	},
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		if outputWriteErr != nil {
+			err := outputWriteErr
+			outputWriteErr = nil
+			return err
+		}
 		return nil
 	},
 	SilenceUsage:  true,
@@ -596,6 +605,20 @@ var testBuf bytes.Buffer
 // lastRawOutput holds the raw output from the last command (before buffer reset).
 var lastRawOutput string
 
+// outputWriteErr stores the first output rendering/writer error from the current command.
+var outputWriteErr error
+
+func recordOutputError(err error) {
+	if err != nil && outputWriteErr == nil {
+		outputWriteErr = err
+	}
+}
+
+func writeOutputString(s string) {
+	_, err := io.WriteString(outWriter, s)
+	recordOutputError(err)
+}
+
 // captureResponse parses the writer buffer into lastResult after each shim call.
 func captureResponse() {
 	if lastResult == nil {
@@ -614,13 +637,13 @@ func captureResponse() {
 func printSuccess(data any) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
-		fmt.Fprint(outWriter, renderHumanData(data, "", false))
+		writeOutputString(renderHumanData(data, "", false))
 		captureResponse()
 	case output.FormatMarkdown:
-		fmt.Fprint(outWriter, renderHumanData(data, "", true))
+		writeOutputString(renderHumanData(data, "", true))
 		captureResponse()
 	default:
-		_ = out.OK(data)
+		recordOutputError(out.OK(data))
 		captureResponse()
 	}
 }
@@ -628,13 +651,13 @@ func printSuccess(data any) {
 func printSuccessWithLocation(location string) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
-		fmt.Fprint(outWriter, renderHumanData(nil, location, false))
+		writeOutputString(renderHumanData(nil, location, false))
 		captureResponse()
 	case output.FormatMarkdown:
-		fmt.Fprint(outWriter, renderHumanData(nil, location, true))
+		writeOutputString(renderHumanData(nil, location, true))
 		captureResponse()
 	default:
-		_ = out.OK(nil, output.WithContext("location", location))
+		recordOutputError(out.OK(nil, output.WithContext("location", location)))
 		captureResponse()
 	}
 }
@@ -650,16 +673,16 @@ func printSuccessWithBreadcrumbs(data any, summary string, breadcrumbs []Breadcr
 	if summary != "" {
 		opts = append(opts, output.WithSummary(summary))
 	}
-	_ = out.OK(data, opts...)
+	recordOutputError(out.OK(data, opts...))
 	captureResponse()
 }
 
 // printSuccessWithLocationAndBreadcrumbs prints a success response with both location and breadcrumbs.
 func printSuccessWithLocationAndBreadcrumbs(data any, location string, breadcrumbs []Breadcrumb) {
-	_ = out.OK(data,
+	recordOutputError(out.OK(data,
 		output.WithBreadcrumbs(breadcrumbs...),
 		output.WithContext("location", location),
-	)
+	))
 	captureResponse()
 }
 
@@ -723,11 +746,11 @@ func printList(data any, cols render.Columns, summary string, breadcrumbs []Brea
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, true))
 		captureResponse()
 	default:
 		opts := []output.ResponseOption{output.WithBreadcrumbs(breadcrumbs...)}
@@ -737,7 +760,7 @@ func printList(data any, cols render.Columns, summary string, breadcrumbs []Brea
 		if notice != "" {
 			opts = append(opts, output.WithNotice(notice))
 		}
-		_ = out.OK(data, opts...)
+		recordOutputError(out.OK(data, opts...))
 		captureResponse()
 	}
 }
@@ -751,11 +774,11 @@ func printListPaginated(data any, cols render.Columns, hasNext bool, nextURL str
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, true))
 		captureResponse()
 	default:
 		opts := []output.ResponseOption{output.WithBreadcrumbs(breadcrumbs...)}
@@ -771,7 +794,7 @@ func printListPaginated(data any, cols render.Columns, hasNext bool, nextURL str
 				"next_url": nextURL,
 			}))
 		}
-		_ = out.OK(data, opts...)
+		recordOutputError(out.OK(data, opts...))
 		captureResponse()
 	}
 }
@@ -781,11 +804,11 @@ func printDetail(data any, summary string, breadcrumbs []Breadcrumb) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledDetail(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownDetail(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, true))
 		captureResponse()
 	default:
 		printSuccessWithBreadcrumbs(data, summary, breadcrumbs)
@@ -797,11 +820,11 @@ func printMutationWithLocation(data any, location string, breadcrumbs []Breadcru
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledDetail(toMap(data), "")
-		fmt.Fprint(outWriter, appendHumanSections(body, "", location, breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, "", location, breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownDetail(toMap(data), "")
-		fmt.Fprint(outWriter, appendHumanSections(body, "", location, breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, "", location, breadcrumbs, true))
 		captureResponse()
 	default:
 		printSuccessWithLocationAndBreadcrumbs(data, location, breadcrumbs)
@@ -814,11 +837,11 @@ func printMutation(data any, summary string, breadcrumbs []Breadcrumb) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledSummary(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownSummary(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, true))
 		captureResponse()
 	default:
 		printSuccessWithBreadcrumbs(data, summary, breadcrumbs)
@@ -1338,6 +1361,7 @@ func ResetTestMode() {
 	errSDKInit = nil
 	lastResult = nil
 	lastRawOutput = ""
+	outputWriteErr = nil
 	cfg = nil
 	creds = nil
 	profiles = nil

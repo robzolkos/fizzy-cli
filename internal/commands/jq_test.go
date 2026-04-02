@@ -361,6 +361,30 @@ func TestCobraJQInvalidExpression(t *testing.T) {
 	}
 }
 
+func TestCobraJQRuntimeErrorIsReturned(t *testing.T) {
+	mock := NewMockClient()
+	mock.GetWithPaginationResponse = &client.APIResponse{
+		StatusCode: 200,
+		Data: []map[string]any{
+			{"id": "1", "name": "Board 1"},
+		},
+	}
+	SetTestModeWithSDK(mock)
+	SetTestConfig("token", "account", "https://api.example.com")
+	defer resetTest()
+
+	_, err := runCobraWithArgs("board", "list", "--jq", ".data / 0")
+	if err == nil {
+		t.Fatal("expected error for jq runtime failure")
+	}
+	if !strings.Contains(err.Error(), "jq filter error") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !errors.IsJQError(err) {
+		t.Error("expected IsJQError to be true")
+	}
+}
+
 // =============================================================================
 // Early validation tests (PersistentPreRunE)
 // =============================================================================
@@ -658,8 +682,8 @@ func TestVersionOutputPlainText(t *testing.T) {
 	resetTest()
 
 	var buf strings.Builder
-	versionCmd.SetOut(&buf)
-	defer versionCmd.SetOut(nil)
+	outWriter = &buf
+	out = output.New(output.Options{Format: output.FormatStyled, Writer: &buf})
 
 	err := versionCmd.RunE(versionCmd, nil)
 	if err != nil {
@@ -679,7 +703,10 @@ func TestJQSetupBlockedInMachineMode(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when running setup with --jq")
 	}
-	if !strings.Contains(err.Error(), "interactive terminal") {
+	if !strings.Contains(err.Error(), "--jq is not supported by the setup command") {
 		t.Errorf("unexpected error: %v", err)
+	}
+	if !errors.IsJQError(err) {
+		t.Error("expected IsJQError to be true")
 	}
 }
