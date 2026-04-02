@@ -22,6 +22,7 @@ type MockClient struct {
 	UploadFileResponse        *client.APIResponse
 
 	PatchMultipartResponse *client.APIResponse
+	GetHTMLResponse        *client.APIResponse
 
 	// Path-based GET response routing (checked before GetResponse)
 	getPathResponses map[string]*client.APIResponse
@@ -37,6 +38,7 @@ type MockClient struct {
 	FollowLocationError    error
 	UploadFileError        error
 	DownloadFileError      error
+	GetHTMLError           error
 
 	// Captured calls for verification
 	GetCalls               []MockCall
@@ -49,6 +51,7 @@ type MockClient struct {
 	FollowLocationCalls    []string
 	UploadFileCalls        []string
 	DownloadFileCalls      []MockDownloadCall
+	GetHTMLCalls           []MockCall
 }
 
 // MockDownloadCall represents a captured download call.
@@ -211,6 +214,17 @@ func (m *MockClient) DownloadFile(urlPath string, destPath string) error {
 		return m.DownloadFileError
 	}
 	return nil
+}
+
+func (m *MockClient) GetHTML(path string) (*client.APIResponse, error) {
+	m.GetHTMLCalls = append(m.GetHTMLCalls, MockCall{Path: path})
+	if m.GetHTMLError != nil {
+		return nil, m.GetHTMLError
+	}
+	if m.GetHTMLResponse != nil {
+		return m.GetHTMLResponse, nil
+	}
+	return &client.APIResponse{StatusCode: 200, Body: []byte("")}, nil
 }
 
 // Helper functions for creating common responses

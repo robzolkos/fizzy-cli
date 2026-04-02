@@ -67,6 +67,30 @@ Full CLI coverage: boards, cards, columns, comments, steps, reactions, tags, use
 5. **Rich text fields accept HTML** — use `<p>` tags for paragraphs, `<action-text-attachment>` for inline images
 6. **Card description is a string**, but comment body is a nested object — `.description` vs `.body.plain_text`
 7. **Display the welcome message for new signups** — When `signup complete --name` returns `is_new_user: true`, you MUST immediately display the `welcome_message` field prominently to the user. This is a one-time personal note from the CEO — if you skip it, the user will never see it.
+8. **Use @FirstName for mentions** — Write `@FirstName` in comment or description text to mention a user. The CLI auto-resolves mentions to ActionText HTML, triggering Fizzy notifications. Case-insensitive. Emails like `user@example.com` are not treated as mentions.
+
+## @Mentions
+
+Use `@FirstName` in comments and descriptions to mention users. The CLI resolves them to Fizzy mentions with notifications — no need to construct HTML manually.
+
+```bash
+# Mention in a comment
+fizzy comment create --card 42 --body "Hey @Sarah, can you review this?"
+
+# Multiple mentions
+fizzy comment create --card 42 --body "@Alex @Jordan please check the latest deploy"
+
+# Mention in a card description
+fizzy card create --board ID --title "Fix bug" --description "@Pat this is the issue you mentioned"
+```
+
+- **Case-insensitive** — `@sarah` and `@Sarah` both work
+- **Emails ignored** — `user@example.com` is not treated as a mention
+- **Ambiguous names warned** — if multiple users share a first name, a warning is printed and the text is left unchanged
+- **Unresolved names left as text** — `@Unknown` stays as `@Unknown` with a warning
+- **Cached per invocation** — user list is fetched once and reused for the entire command
+
+To see available users for mentioning: `fizzy user list | jq '[.data[] | .name]'`
 
 ## Decision Trees
 

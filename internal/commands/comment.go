@@ -143,15 +143,16 @@ var commentCreateCmd = &cobra.Command{
 		}
 
 		// Determine body content
+		apiClient := getClient()
 		var body string
 		if commentCreateBodyFile != "" {
 			content, err := os.ReadFile(commentCreateBodyFile)
 			if err != nil {
 				return err
 			}
-			body = markdownToHTML(string(content))
+			body = markdownToHTML(resolveMentions(string(content), apiClient))
 		} else if commentCreateBody != "" {
-			body = markdownToHTML(commentCreateBody)
+			body = markdownToHTML(resolveMentions(commentCreateBody, apiClient))
 		} else {
 			return newRequiredFlagError("body or body_file")
 		}
@@ -203,15 +204,16 @@ var commentUpdateCmd = &cobra.Command{
 			return newRequiredFlagError("card")
 		}
 
+		apiClient := getClient()
 		var body string
 		if commentUpdateBodyFile != "" {
 			content, err := os.ReadFile(commentUpdateBodyFile)
 			if err != nil {
 				return err
 			}
-			body = markdownToHTML(string(content))
+			body = markdownToHTML(resolveMentions(string(content), apiClient))
 		} else if commentUpdateBody != "" {
-			body = markdownToHTML(commentUpdateBody)
+			body = markdownToHTML(resolveMentions(commentUpdateBody, apiClient))
 		}
 
 		commentID := args[0]

@@ -287,15 +287,16 @@ var cardCreateCmd = &cobra.Command{
 		}
 
 		// Resolve description
+		apiClient := getClient()
 		var description string
 		if cardCreateDescriptionFile != "" {
 			descContent, descErr := os.ReadFile(cardCreateDescriptionFile)
 			if descErr != nil {
 				return descErr
 			}
-			description = markdownToHTML(string(descContent))
+			description = markdownToHTML(resolveMentions(string(descContent), apiClient))
 		} else if cardCreateDescription != "" {
-			description = markdownToHTML(cardCreateDescription)
+			description = markdownToHTML(resolveMentions(cardCreateDescription, apiClient))
 		}
 
 		ac := getSDK()
@@ -378,15 +379,16 @@ var cardUpdateCmd = &cobra.Command{
 		cardNumber := args[0]
 
 		// Resolve description
+		apiClient := getClient()
 		var description string
 		if cardUpdateDescriptionFile != "" {
 			content, err := os.ReadFile(cardUpdateDescriptionFile)
 			if err != nil {
 				return err
 			}
-			description = markdownToHTML(string(content))
+			description = markdownToHTML(resolveMentions(string(content), apiClient))
 		} else if cardUpdateDescription != "" {
-			description = markdownToHTML(cardUpdateDescription)
+			description = markdownToHTML(resolveMentions(cardUpdateDescription, apiClient))
 		}
 
 		// Build breadcrumbs
