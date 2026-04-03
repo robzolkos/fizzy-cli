@@ -222,10 +222,10 @@ func runSkillWizard() error {
 		canonicalDir := filepath.Join(home, ".agents", "skills", "fizzy")
 		canonicalFile := filepath.Join(canonicalDir, skillFilename)
 		if canonicalFile != expandedPath {
-			_ = os.MkdirAll(canonicalDir, 0o755)                                                                 // #nosec G301 -- skill files are not secrets //nolint:gosec
-			_ = os.WriteFile(canonicalFile, data, 0o644)                                                         // #nosec G306 -- skill files are not secrets //nolint:gosec
-			_ = os.WriteFile(filepath.Join(canonicalDir, installedVersionFile), []byte(currentVersion()), 0o644) // #nosec G306 -- not a secret //nolint:gosec
+			_ = os.MkdirAll(canonicalDir, 0o755)         // #nosec G301 -- skill files are not secrets //nolint:gosec
+			_ = os.WriteFile(canonicalFile, data, 0o644) // #nosec G306 -- skill files are not secrets //nolint:gosec
 		}
+		_ = os.WriteFile(filepath.Join(canonicalDir, installedVersionFile), []byte(currentVersion()), 0o644) // #nosec G306 -- not a secret //nolint:gosec
 	}
 
 	fmt.Println()

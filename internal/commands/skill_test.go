@@ -256,8 +256,12 @@ func TestCopySkillFilesRejectsSubdirs(t *testing.T) {
 	src := t.TempDir()
 	dst := filepath.Join(t.TempDir(), "dest")
 
-	_ = os.WriteFile(filepath.Join(src, "SKILL.md"), []byte("content"), 0o644)
-	_ = os.MkdirAll(filepath.Join(src, "subdir"), 0o755)
+	if err := os.WriteFile(filepath.Join(src, "SKILL.md"), []byte("content"), 0o644); err != nil {
+		t.Fatalf("writing SKILL.md: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(src, "subdir"), 0o755); err != nil {
+		t.Fatalf("creating subdir: %v", err)
+	}
 
 	err := copySkillFiles(src, dst)
 	if err == nil {
@@ -274,8 +278,12 @@ func TestBaselineSkillInstalled(t *testing.T) {
 		t.Setenv("HOME", home)
 
 		skillDir := filepath.Join(home, ".agents", "skills", "fizzy")
-		_ = os.MkdirAll(skillDir, 0o755)
-		_ = os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("content"), 0o644)
+		if err := os.MkdirAll(skillDir, 0o755); err != nil {
+			t.Fatalf("creating skill directory: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("content"), 0o644); err != nil {
+			t.Fatalf("writing SKILL.md: %v", err)
+		}
 
 		if !baselineSkillInstalled() {
 			t.Error("expected true when skill file exists")
