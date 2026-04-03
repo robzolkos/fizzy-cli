@@ -20,6 +20,7 @@
 - Works standalone or with any AI agent (Claude, Codex, Copilot, Gemini)
 - JSON output with breadcrumbs for easy navigation
 - Token authentication via personal access tokens
+- Includes agent skill and Claude plugin setup
 
 ## Quick Start
 
@@ -114,11 +115,11 @@ Breadcrumbs suggest next commands, making it easy for humans and agents to navig
 
 `fizzy` works with any AI agent that can run shell commands.
 
-```bash
-fizzy skill
-```
+**Claude Code:** `fizzy setup claude` — installs the Claude plugin from the marketplace and links the embedded Fizzy skill into Claude's skills directory.
 
-This interactive command installs the [SKILL.md](skills/fizzy/SKILL.md) file to your preferred AI assistant (Claude Code, OpenCode, Codex, or a custom path).
+**Other agents:** Point your agent at [`skills/fizzy/SKILL.md`](skills/fizzy/SKILL.md) for Fizzy workflow coverage, or run `fizzy skill` / `fizzy skill install` to install the embedded skill.
+
+**Agent discovery:** Every command supports `--help --agent` for structured help output. Use `fizzy commands --json` for the full command catalog.
 
 ## Configuration
 

@@ -67,6 +67,8 @@ var (
 	outWriter io.Writer // raw writer for styled/markdown rendering
 )
 
+var cliVersion = "dev"
+
 // rootCmd represents the base command.
 var rootCmd = &cobra.Command{
 	Use:     "fizzy",
@@ -176,6 +178,9 @@ var rootCmd = &cobra.Command{
 			errOutputWrite = nil
 			return err
 		}
+		if RefreshSkillsIfVersionChanged() && !IsMachineOutput() {
+			fmt.Fprintf(os.Stderr, "Agent skill updated to match CLI %s\n", currentVersion())
+		}
 		return nil
 	},
 	SilenceUsage:  true,
@@ -187,6 +192,7 @@ func SetVersion(v string) {
 	if v == "" {
 		return
 	}
+	cliVersion = v
 	rootCmd.Version = v
 }
 
