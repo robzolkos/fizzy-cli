@@ -87,9 +87,13 @@ fizzy comment create --card 42 --body "Looks good!"   # Add comment
 ### Output Formats
 
 ```bash
-fizzy board list               # JSON output
-fizzy board list | jq '.data'  # Pipe through jq for raw data
+fizzy board list                                 # JSON output
+fizzy board list --jq '.data[0].name'            # Filter the JSON envelope (built-in, no external jq required)
+fizzy board list --quiet --jq '.[0].name'        # Filter raw data without the envelope
+fizzy board list --jq '[.data[] | {id, name}]'   # Extract specific fields
 ```
+
+`--jq` is for machine-readable JSON output. It implies `--json` and cannot be combined with `--styled`, `--markdown`, `--ids-only`, or `--count`.
 
 ### JSON Envelope
 

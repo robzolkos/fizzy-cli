@@ -110,3 +110,20 @@ func agentHelp(cmd *cobra.Command, _ []string) {
 	data, _ := json.MarshalIndent(info, "", "  ")
 	fmt.Fprintln(outWriter, string(data))
 }
+
+// installAgentHelp sets the custom help function when --agent is active.
+func installAgentHelp() {
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		if cfgAgent {
+			agentHelp(cmd, args)
+			return
+		}
+		// Banner on root help only
+		if cmd == rootCmd {
+			printBanner()
+		}
+		// Fall back to Cobra's default help
+		cmd.Root().SetHelpFunc(nil)
+		_ = cmd.Help()
+	})
+}

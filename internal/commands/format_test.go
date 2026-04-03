@@ -254,6 +254,56 @@ func TestFormatJSONEnvelope(t *testing.T) {
 	}
 }
 
+func TestVersionJSONOutput(t *testing.T) {
+	mock := NewMockClient()
+	SetTestModeWithSDK(mock)
+	SetTestConfig("token", "account", "https://api.example.com")
+	defer resetTest()
+
+	raw, err := runCobraWithArgs("version", "--json")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+		t.Fatalf("expected JSON object, got parse error: %v\noutput: %s", err, raw)
+	}
+	if envelope["ok"] != true {
+		t.Errorf("expected ok=true, got %v", envelope["ok"])
+	}
+	data, ok := envelope["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data object, got %T", envelope["data"])
+	}
+	if data["version"] != rootCmd.Version {
+		t.Errorf("expected version %q, got %v", rootCmd.Version, data["version"])
+	}
+}
+
+func TestVersionQuietOutput(t *testing.T) {
+	mock := NewMockClient()
+	SetTestModeWithSDK(mock)
+	SetTestConfig("token", "account", "https://api.example.com")
+	defer resetTest()
+
+	raw, err := runCobraWithArgs("version", "--quiet")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal([]byte(raw), &data); err != nil {
+		t.Fatalf("expected JSON object, got parse error: %v\noutput: %s", err, raw)
+	}
+	if _, hasOK := data["ok"]; hasOK {
+		t.Error("quiet output should not include envelope")
+	}
+	if data["version"] != rootCmd.Version {
+		t.Errorf("expected version %q, got %v", rootCmd.Version, data["version"])
+	}
+}
+
 func TestPrettyFlagRemoved(t *testing.T) {
 	flag := rootCmd.PersistentFlags().Lookup("pretty")
 	if flag != nil {
@@ -281,6 +331,7 @@ func runCobraWithArgs(args ...string) (string, error) {
 	cfgAgent = false
 	cfgStyled = false
 	cfgMarkdown = false
+	cfgJQ = ""
 	testBuf.Reset()
 	lastRawOutput = ""
 	out = output.New(output.Options{Format: output.FormatJSON, Writer: &testBuf})

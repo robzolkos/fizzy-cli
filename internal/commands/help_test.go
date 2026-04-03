@@ -15,7 +15,7 @@ func TestRenderRootHelp(t *testing.T) {
 	renderHelp(rootCmd, &buf)
 	out := buf.String()
 
-	for _, want := range []string{"CORE COMMANDS", "FLAGS", "--version", "GLOBAL OUTPUT FLAGS", "LEARN MORE"} {
+	for _, want := range []string{"CORE COMMANDS", "FLAGS", "--version", "GLOBAL OUTPUT FLAGS", "LEARN MORE", "implies --json"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("expected root help to contain %q, got:\n%s", want, out)
 		}
@@ -87,5 +87,17 @@ func TestRenderCommandsHelpMentionsJSONCatalog(t *testing.T) {
 	}
 	if !strings.Contains(out, "EXAMPLES") || !strings.Contains(out, "$ fizzy commands --json") {
 		t.Fatalf("expected commands help examples to include --json, got:\n%s", out)
+	}
+}
+
+func TestRenderSubcommandHelpDoesNotRepeatJQFlag(t *testing.T) {
+	configureCLIUX()
+
+	var buf bytes.Buffer
+	renderHelp(boardListCmd, &buf)
+	out := buf.String()
+
+	if strings.Contains(out, "--jq") {
+		t.Fatalf("expected subcommand help to omit --jq, got:\n%s", out)
 	}
 }

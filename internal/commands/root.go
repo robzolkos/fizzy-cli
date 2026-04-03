@@ -22,6 +22,7 @@ import (
 	"github.com/basecamp/fizzy-cli/internal/errors"
 	"github.com/basecamp/fizzy-cli/internal/render"
 	fizzy "github.com/basecamp/fizzy-sdk/go/pkg/fizzy"
+	"github.com/itchyny/gojq"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
@@ -43,6 +44,7 @@ var (
 	cfgStyled   bool
 	cfgMarkdown bool
 	cfgLimit    int
+	cfgJQ       string
 
 	// Loaded config
 	cfg *config.Config
@@ -72,6 +74,26 @@ var rootCmd = &cobra.Command{
 	Long:    `Command-line interface for Fizzy`,
 	Version: "dev",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		errOutputWrite = nil
+		// Early jq validation: check flag conflicts first (actionable message),
+		// then parse + compile before RunE so invalid expressions are rejected
+		// with no side effects. The compiled code is reused below to avoid
+		// parsing the expression twice.
+		var jqCode *gojq.Code
+		if cfgJQ != "" {
+			if cfgIDsOnly {
+				return errors.ErrJQConflict("--ids-only")
+			}
+			if cfgCount {
+				return errors.ErrJQConflict("--count")
+			}
+			var err error
+			jqCode, err = compileJQ(cfgJQ)
+			if err != nil {
+				return err
+			}
+		}
+
 		// Resolve output format from parsed flags (must happen post-parse).
 		format, err := resolveFormat()
 		if err != nil {
@@ -80,10 +102,18 @@ var rootCmd = &cobra.Command{
 		if lastResult != nil {
 			// Test mode — preserve test buffer as writer.
 			outWriter = &testBuf
-			out = output.New(output.Options{Format: format, Writer: &testBuf})
+			var w io.Writer = &testBuf
+			if jqCode != nil {
+				w = newJQWriterWithCode(&testBuf, jqCode)
+			}
+			out = output.New(output.Options{Format: format, Writer: w})
 		} else {
 			outWriter = os.Stdout
-			out = output.New(output.Options{Format: format, Writer: os.Stdout})
+			var w io.Writer = os.Stdout
+			if jqCode != nil {
+				w = newJQWriterWithCode(os.Stdout, jqCode)
+			}
+			out = output.New(output.Options{Format: format, Writer: w})
 		}
 
 		// In test mode, cfg is already set by SetTestConfig - don't overwrite
@@ -140,6 +170,14 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		if errOutputWrite != nil {
+			err := errOutputWrite
+			errOutputWrite = nil
+			return err
+		}
+		return nil
+	},
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -169,6 +207,23 @@ func Execute() {
 		if !stderrors.As(err, &e) {
 			// Cobra-level errors (arg count, unknown flag) → usage
 			e = &output.Error{Code: output.CodeUsage, Message: err.Error()}
+		}
+
+		// jq-related errors (validation failures, unsupported commands, conflicts)
+		// must never be fed through the jq filter. Rebuild the output writer
+		// without jq so the error renders cleanly. Re-resolve the format to
+		// honor explicit flags like --agent --json.
+		if errors.IsJQError(err) && cfgJQ != "" {
+			format, fmtErr := resolveFormat()
+			if fmtErr != nil {
+				// resolveFormat() can fail when --jq conflicts with another flag
+				// (e.g. --jq --styled). Fall back to a sensible machine format.
+				format = output.FormatJSON
+				if cfgAgent || cfgQuiet {
+					format = output.FormatQuiet
+				}
+			}
+			out = output.New(output.Options{Format: format, Writer: outWriter})
 		}
 		if isHumanOutput() {
 			printHumanError(cmd, e)
@@ -211,6 +266,11 @@ func resolveFormat() (output.Format, error) {
 		return 0, fmt.Errorf("--agent and --styled cannot be used together")
 	}
 
+	// --jq is a JSON transform and is incompatible with human/count/id renderers.
+	if cfgJQ != "" && (cfgStyled || cfgMarkdown || cfgIDsOnly || cfgCount) {
+		return 0, fmt.Errorf("--jq filters JSON output; use it with default JSON output or --quiet, not with --styled, --markdown, --ids-only, or --count")
+	}
+
 	// Explicit format flag wins
 	switch {
 	case cfgQuiet:
@@ -227,6 +287,14 @@ func resolveFormat() (output.Format, error) {
 		return output.FormatMarkdown, nil
 	}
 
+	// --jq implies JSON (or quiet for --agent)
+	if cfgJQ != "" {
+		if cfgAgent {
+			return output.FormatQuiet, nil
+		}
+		return output.FormatJSON, nil
+	}
+
 	// --agent alone defaults to FormatQuiet
 	if cfgAgent {
 		return output.FormatQuiet, nil
@@ -238,7 +306,7 @@ func resolveFormat() (output.Format, error) {
 // IsMachineOutput returns true when output should be treated as machine-consumable.
 // True when any machine format flag is set, --agent is set, or stdout/stdin is not a TTY.
 func IsMachineOutput() bool {
-	if cfgAgent || cfgJSON || cfgQuiet || cfgIDsOnly || cfgCount {
+	if cfgAgent || cfgJSON || cfgQuiet || cfgIDsOnly || cfgCount || cfgJQ != "" {
 		return true
 	}
 	if !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stdout.Fd()) {
@@ -312,6 +380,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&cfgStyled, "styled", false, "Styled terminal output with colors")
 	rootCmd.PersistentFlags().BoolVar(&cfgMarkdown, "markdown", false, "Markdown formatted output")
 	rootCmd.PersistentFlags().IntVar(&cfgLimit, "limit", 0, "Maximum number of results to display")
+	rootCmd.PersistentFlags().StringVar(&cfgJQ, "jq", "", "Apply jq filter to JSON output (built-in, no external jq required; implies --json)")
+
+	installAgentHelp()
 }
 
 // getClient returns an API client configured from global settings.
@@ -534,6 +605,20 @@ var testBuf bytes.Buffer
 // lastRawOutput holds the raw output from the last command (before buffer reset).
 var lastRawOutput string
 
+// errOutputWrite stores the first output rendering/writer error from the current command.
+var errOutputWrite error
+
+func recordOutputError(err error) {
+	if err != nil && errOutputWrite == nil {
+		errOutputWrite = err
+	}
+}
+
+func writeOutputString(s string) {
+	_, err := io.WriteString(outWriter, s)
+	recordOutputError(err)
+}
+
 // captureResponse parses the writer buffer into lastResult after each shim call.
 func captureResponse() {
 	if lastResult == nil {
@@ -552,13 +637,13 @@ func captureResponse() {
 func printSuccess(data any) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
-		fmt.Fprint(outWriter, renderHumanData(data, "", false))
+		writeOutputString(renderHumanData(data, "", false))
 		captureResponse()
 	case output.FormatMarkdown:
-		fmt.Fprint(outWriter, renderHumanData(data, "", true))
+		writeOutputString(renderHumanData(data, "", true))
 		captureResponse()
 	default:
-		_ = out.OK(data)
+		recordOutputError(out.OK(data))
 		captureResponse()
 	}
 }
@@ -566,13 +651,13 @@ func printSuccess(data any) {
 func printSuccessWithLocation(location string) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
-		fmt.Fprint(outWriter, renderHumanData(nil, location, false))
+		writeOutputString(renderHumanData(nil, location, false))
 		captureResponse()
 	case output.FormatMarkdown:
-		fmt.Fprint(outWriter, renderHumanData(nil, location, true))
+		writeOutputString(renderHumanData(nil, location, true))
 		captureResponse()
 	default:
-		_ = out.OK(nil, output.WithContext("location", location))
+		recordOutputError(out.OK(nil, output.WithContext("location", location)))
 		captureResponse()
 	}
 }
@@ -588,16 +673,16 @@ func printSuccessWithBreadcrumbs(data any, summary string, breadcrumbs []Breadcr
 	if summary != "" {
 		opts = append(opts, output.WithSummary(summary))
 	}
-	_ = out.OK(data, opts...)
+	recordOutputError(out.OK(data, opts...))
 	captureResponse()
 }
 
 // printSuccessWithLocationAndBreadcrumbs prints a success response with both location and breadcrumbs.
 func printSuccessWithLocationAndBreadcrumbs(data any, location string, breadcrumbs []Breadcrumb) {
-	_ = out.OK(data,
+	recordOutputError(out.OK(data,
 		output.WithBreadcrumbs(breadcrumbs...),
 		output.WithContext("location", location),
-	)
+	))
 	captureResponse()
 }
 
@@ -661,11 +746,11 @@ func printList(data any, cols render.Columns, summary string, breadcrumbs []Brea
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, true))
 		captureResponse()
 	default:
 		opts := []output.ResponseOption{output.WithBreadcrumbs(breadcrumbs...)}
@@ -675,7 +760,7 @@ func printList(data any, cols render.Columns, summary string, breadcrumbs []Brea
 		if notice != "" {
 			opts = append(opts, output.WithNotice(notice))
 		}
-		_ = out.OK(data, opts...)
+		recordOutputError(out.OK(data, opts...))
 		captureResponse()
 	}
 }
@@ -689,11 +774,11 @@ func printListPaginated(data any, cols render.Columns, hasNext bool, nextURL str
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownList(toMaps(data), cols, summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, notice, "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, notice, "", breadcrumbs, true))
 		captureResponse()
 	default:
 		opts := []output.ResponseOption{output.WithBreadcrumbs(breadcrumbs...)}
@@ -709,7 +794,7 @@ func printListPaginated(data any, cols render.Columns, hasNext bool, nextURL str
 				"next_url": nextURL,
 			}))
 		}
-		_ = out.OK(data, opts...)
+		recordOutputError(out.OK(data, opts...))
 		captureResponse()
 	}
 }
@@ -719,11 +804,11 @@ func printDetail(data any, summary string, breadcrumbs []Breadcrumb) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledDetail(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownDetail(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, true))
 		captureResponse()
 	default:
 		printSuccessWithBreadcrumbs(data, summary, breadcrumbs)
@@ -735,11 +820,11 @@ func printMutationWithLocation(data any, location string, breadcrumbs []Breadcru
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledDetail(toMap(data), "")
-		fmt.Fprint(outWriter, appendHumanSections(body, "", location, breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, "", location, breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownDetail(toMap(data), "")
-		fmt.Fprint(outWriter, appendHumanSections(body, "", location, breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, "", location, breadcrumbs, true))
 		captureResponse()
 	default:
 		printSuccessWithLocationAndBreadcrumbs(data, location, breadcrumbs)
@@ -752,11 +837,11 @@ func printMutation(data any, summary string, breadcrumbs []Breadcrumb) {
 	switch out.EffectiveFormat() {
 	case output.FormatStyled:
 		body := render.StyledSummary(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, false))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, false))
 		captureResponse()
 	case output.FormatMarkdown:
 		body := render.MarkdownSummary(toMap(data), summary)
-		fmt.Fprint(outWriter, appendHumanSections(body, "", "", breadcrumbs, true))
+		writeOutputString(appendHumanSections(body, "", "", breadcrumbs, true))
 		captureResponse()
 	default:
 		printSuccessWithBreadcrumbs(data, summary, breadcrumbs)
@@ -1276,6 +1361,7 @@ func ResetTestMode() {
 	errSDKInit = nil
 	lastResult = nil
 	lastRawOutput = ""
+	errOutputWrite = nil
 	cfg = nil
 	creds = nil
 	profiles = nil
@@ -1287,6 +1373,7 @@ func ResetTestMode() {
 	cfgStyled = false
 	cfgMarkdown = false
 	cfgLimit = 0
+	cfgJQ = ""
 	cfgProfile = ""
 }
 
