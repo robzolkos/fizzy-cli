@@ -1,3 +1,28 @@
+ARG fizzy account help 00 [command]
+ARG fizzy auth help 00 [command]
+ARG fizzy board help 00 [command]
+ARG fizzy card attachments download 00 [ATTACHMENT_INDEX]
+ARG fizzy card attachments help 00 [command]
+ARG fizzy card help 00 [command]
+ARG fizzy column help 00 [command]
+ARG fizzy comment attachments download 00 [ATTACHMENT_INDEX]
+ARG fizzy comment attachments help 00 [command]
+ARG fizzy comment help 00 [command]
+ARG fizzy completion 00 [bash|zsh|fish|powershell]
+ARG fizzy help 00 [command]
+ARG fizzy identity help 00 [command]
+ARG fizzy migrate help 00 [command]
+ARG fizzy notification help 00 [command]
+ARG fizzy pin help 00 [command]
+ARG fizzy reaction help 00 [command]
+ARG fizzy setup help 00 [command]
+ARG fizzy signup help 00 [command]
+ARG fizzy skill help 00 [command]
+ARG fizzy step help 00 [command]
+ARG fizzy tag help 00 [command]
+ARG fizzy upload help 00 [command]
+ARG fizzy user help 00 [command]
+ARG fizzy webhook help 00 [command]
 CMD fizzy
 CMD fizzy account
 CMD fizzy account entropy
@@ -9,11 +34,13 @@ CMD fizzy account join-code-show
 CMD fizzy account join-code-update
 CMD fizzy account settings-update
 CMD fizzy account show
+CMD fizzy account view
 CMD fizzy auth
 CMD fizzy auth help
 CMD fizzy auth list
 CMD fizzy auth login
 CMD fizzy auth logout
+CMD fizzy auth ls
 CMD fizzy auth status
 CMD fizzy auth switch
 CMD fizzy board
@@ -24,18 +51,22 @@ CMD fizzy board entropy
 CMD fizzy board help
 CMD fizzy board involvement
 CMD fizzy board list
+CMD fizzy board ls
 CMD fizzy board postponed
 CMD fizzy board publish
+CMD fizzy board rm
 CMD fizzy board show
 CMD fizzy board stream
 CMD fizzy board unpublish
 CMD fizzy board update
+CMD fizzy board view
 CMD fizzy card
 CMD fizzy card assign
 CMD fizzy card attachments
 CMD fizzy card attachments download
 CMD fizzy card attachments help
 CMD fizzy card attachments show
+CMD fizzy card attachments view
 CMD fizzy card close
 CMD fizzy card column
 CMD fizzy card create
@@ -44,6 +75,7 @@ CMD fizzy card golden
 CMD fizzy card help
 CMD fizzy card image-remove
 CMD fizzy card list
+CMD fizzy card ls
 CMD fizzy card mark-read
 CMD fizzy card mark-unread
 CMD fizzy card move
@@ -51,6 +83,7 @@ CMD fizzy card pin
 CMD fizzy card postpone
 CMD fizzy card publish
 CMD fizzy card reopen
+CMD fizzy card rm
 CMD fizzy card self-assign
 CMD fizzy card show
 CMD fizzy card tag
@@ -59,39 +92,49 @@ CMD fizzy card unpin
 CMD fizzy card untriage
 CMD fizzy card unwatch
 CMD fizzy card update
+CMD fizzy card view
 CMD fizzy card watch
 CMD fizzy column
 CMD fizzy column create
 CMD fizzy column delete
 CMD fizzy column help
 CMD fizzy column list
+CMD fizzy column ls
 CMD fizzy column move-left
 CMD fizzy column move-right
+CMD fizzy column rm
 CMD fizzy column show
 CMD fizzy column update
+CMD fizzy column view
 CMD fizzy commands
 CMD fizzy comment
 CMD fizzy comment attachments
 CMD fizzy comment attachments download
 CMD fizzy comment attachments help
 CMD fizzy comment attachments show
+CMD fizzy comment attachments view
 CMD fizzy comment create
 CMD fizzy comment delete
 CMD fizzy comment help
 CMD fizzy comment list
+CMD fizzy comment ls
+CMD fizzy comment rm
 CMD fizzy comment show
 CMD fizzy comment update
+CMD fizzy comment view
 CMD fizzy completion
 CMD fizzy help
 CMD fizzy identity
 CMD fizzy identity help
 CMD fizzy identity show
+CMD fizzy identity view
 CMD fizzy migrate
 CMD fizzy migrate board
 CMD fizzy migrate help
 CMD fizzy notification
 CMD fizzy notification help
 CMD fizzy notification list
+CMD fizzy notification ls
 CMD fizzy notification read
 CMD fizzy notification read-all
 CMD fizzy notification settings-show
@@ -101,11 +144,14 @@ CMD fizzy notification unread
 CMD fizzy pin
 CMD fizzy pin help
 CMD fizzy pin list
+CMD fizzy pin ls
 CMD fizzy reaction
 CMD fizzy reaction create
 CMD fizzy reaction delete
 CMD fizzy reaction help
 CMD fizzy reaction list
+CMD fizzy reaction ls
+CMD fizzy reaction rm
 CMD fizzy search
 CMD fizzy setup
 CMD fizzy setup claude
@@ -123,11 +169,15 @@ CMD fizzy step create
 CMD fizzy step delete
 CMD fizzy step help
 CMD fizzy step list
+CMD fizzy step ls
+CMD fizzy step rm
 CMD fizzy step show
 CMD fizzy step update
+CMD fizzy step view
 CMD fizzy tag
 CMD fizzy tag help
 CMD fizzy tag list
+CMD fizzy tag ls
 CMD fizzy upload
 CMD fizzy upload file
 CMD fizzy upload help
@@ -136,20 +186,25 @@ CMD fizzy user avatar-remove
 CMD fizzy user deactivate
 CMD fizzy user help
 CMD fizzy user list
+CMD fizzy user ls
 CMD fizzy user push-subscription-create
 CMD fizzy user push-subscription-delete
 CMD fizzy user role
 CMD fizzy user show
 CMD fizzy user update
+CMD fizzy user view
 CMD fizzy version
 CMD fizzy webhook
 CMD fizzy webhook create
 CMD fizzy webhook delete
 CMD fizzy webhook help
 CMD fizzy webhook list
+CMD fizzy webhook ls
 CMD fizzy webhook reactivate
+CMD fizzy webhook rm
 CMD fizzy webhook show
 CMD fizzy webhook update
+CMD fizzy webhook view
 FLAG fizzy --agent type=bool
 FLAG fizzy --api-url type=string
 FLAG fizzy --count type=bool
@@ -308,6 +363,20 @@ FLAG fizzy account show --quiet type=bool
 FLAG fizzy account show --styled type=bool
 FLAG fizzy account show --token type=string
 FLAG fizzy account show --verbose type=bool
+FLAG fizzy account view --agent type=bool
+FLAG fizzy account view --api-url type=string
+FLAG fizzy account view --count type=bool
+FLAG fizzy account view --help type=bool
+FLAG fizzy account view --ids-only type=bool
+FLAG fizzy account view --jq type=string
+FLAG fizzy account view --json type=bool
+FLAG fizzy account view --limit type=int
+FLAG fizzy account view --markdown type=bool
+FLAG fizzy account view --profile type=string
+FLAG fizzy account view --quiet type=bool
+FLAG fizzy account view --styled type=bool
+FLAG fizzy account view --token type=string
+FLAG fizzy account view --verbose type=bool
 FLAG fizzy auth --agent type=bool
 FLAG fizzy auth --api-url type=string
 FLAG fizzy auth --count type=bool
@@ -379,6 +448,20 @@ FLAG fizzy auth logout --quiet type=bool
 FLAG fizzy auth logout --styled type=bool
 FLAG fizzy auth logout --token type=string
 FLAG fizzy auth logout --verbose type=bool
+FLAG fizzy auth ls --agent type=bool
+FLAG fizzy auth ls --api-url type=string
+FLAG fizzy auth ls --count type=bool
+FLAG fizzy auth ls --help type=bool
+FLAG fizzy auth ls --ids-only type=bool
+FLAG fizzy auth ls --jq type=string
+FLAG fizzy auth ls --json type=bool
+FLAG fizzy auth ls --limit type=int
+FLAG fizzy auth ls --markdown type=bool
+FLAG fizzy auth ls --profile type=string
+FLAG fizzy auth ls --quiet type=bool
+FLAG fizzy auth ls --styled type=bool
+FLAG fizzy auth ls --token type=string
+FLAG fizzy auth ls --verbose type=bool
 FLAG fizzy auth status --agent type=bool
 FLAG fizzy auth status --api-url type=string
 FLAG fizzy auth status --count type=bool
@@ -529,6 +612,22 @@ FLAG fizzy board list --quiet type=bool
 FLAG fizzy board list --styled type=bool
 FLAG fizzy board list --token type=string
 FLAG fizzy board list --verbose type=bool
+FLAG fizzy board ls --agent type=bool
+FLAG fizzy board ls --all type=bool
+FLAG fizzy board ls --api-url type=string
+FLAG fizzy board ls --count type=bool
+FLAG fizzy board ls --help type=bool
+FLAG fizzy board ls --ids-only type=bool
+FLAG fizzy board ls --jq type=string
+FLAG fizzy board ls --json type=bool
+FLAG fizzy board ls --limit type=int
+FLAG fizzy board ls --markdown type=bool
+FLAG fizzy board ls --page type=int
+FLAG fizzy board ls --profile type=string
+FLAG fizzy board ls --quiet type=bool
+FLAG fizzy board ls --styled type=bool
+FLAG fizzy board ls --token type=string
+FLAG fizzy board ls --verbose type=bool
 FLAG fizzy board postponed --agent type=bool
 FLAG fizzy board postponed --all type=bool
 FLAG fizzy board postponed --api-url type=string
@@ -560,6 +659,20 @@ FLAG fizzy board publish --quiet type=bool
 FLAG fizzy board publish --styled type=bool
 FLAG fizzy board publish --token type=string
 FLAG fizzy board publish --verbose type=bool
+FLAG fizzy board rm --agent type=bool
+FLAG fizzy board rm --api-url type=string
+FLAG fizzy board rm --count type=bool
+FLAG fizzy board rm --help type=bool
+FLAG fizzy board rm --ids-only type=bool
+FLAG fizzy board rm --jq type=string
+FLAG fizzy board rm --json type=bool
+FLAG fizzy board rm --limit type=int
+FLAG fizzy board rm --markdown type=bool
+FLAG fizzy board rm --profile type=string
+FLAG fizzy board rm --quiet type=bool
+FLAG fizzy board rm --styled type=bool
+FLAG fizzy board rm --token type=string
+FLAG fizzy board rm --verbose type=bool
 FLAG fizzy board show --agent type=bool
 FLAG fizzy board show --api-url type=string
 FLAG fizzy board show --count type=bool
@@ -622,6 +735,20 @@ FLAG fizzy board update --quiet type=bool
 FLAG fizzy board update --styled type=bool
 FLAG fizzy board update --token type=string
 FLAG fizzy board update --verbose type=bool
+FLAG fizzy board view --agent type=bool
+FLAG fizzy board view --api-url type=string
+FLAG fizzy board view --count type=bool
+FLAG fizzy board view --help type=bool
+FLAG fizzy board view --ids-only type=bool
+FLAG fizzy board view --jq type=string
+FLAG fizzy board view --json type=bool
+FLAG fizzy board view --limit type=int
+FLAG fizzy board view --markdown type=bool
+FLAG fizzy board view --profile type=string
+FLAG fizzy board view --quiet type=bool
+FLAG fizzy board view --styled type=bool
+FLAG fizzy board view --token type=string
+FLAG fizzy board view --verbose type=bool
 FLAG fizzy card --agent type=bool
 FLAG fizzy card --api-url type=string
 FLAG fizzy card --count type=bool
@@ -710,6 +837,21 @@ FLAG fizzy card attachments show --quiet type=bool
 FLAG fizzy card attachments show --styled type=bool
 FLAG fizzy card attachments show --token type=string
 FLAG fizzy card attachments show --verbose type=bool
+FLAG fizzy card attachments view --agent type=bool
+FLAG fizzy card attachments view --api-url type=string
+FLAG fizzy card attachments view --count type=bool
+FLAG fizzy card attachments view --help type=bool
+FLAG fizzy card attachments view --ids-only type=bool
+FLAG fizzy card attachments view --include-comments type=bool
+FLAG fizzy card attachments view --jq type=string
+FLAG fizzy card attachments view --json type=bool
+FLAG fizzy card attachments view --limit type=int
+FLAG fizzy card attachments view --markdown type=bool
+FLAG fizzy card attachments view --profile type=string
+FLAG fizzy card attachments view --quiet type=bool
+FLAG fizzy card attachments view --styled type=bool
+FLAG fizzy card attachments view --token type=string
+FLAG fizzy card attachments view --verbose type=bool
 FLAG fizzy card close --agent type=bool
 FLAG fizzy card close --api-url type=string
 FLAG fizzy card close --count type=bool
@@ -843,6 +985,34 @@ FLAG fizzy card list --tag type=string
 FLAG fizzy card list --token type=string
 FLAG fizzy card list --unassigned type=bool
 FLAG fizzy card list --verbose type=bool
+FLAG fizzy card ls --agent type=bool
+FLAG fizzy card ls --all type=bool
+FLAG fizzy card ls --api-url type=string
+FLAG fizzy card ls --assignee type=string
+FLAG fizzy card ls --board type=string
+FLAG fizzy card ls --closed type=string
+FLAG fizzy card ls --closer type=string
+FLAG fizzy card ls --column type=string
+FLAG fizzy card ls --count type=bool
+FLAG fizzy card ls --created type=string
+FLAG fizzy card ls --creator type=string
+FLAG fizzy card ls --help type=bool
+FLAG fizzy card ls --ids-only type=bool
+FLAG fizzy card ls --indexed-by type=string
+FLAG fizzy card ls --jq type=string
+FLAG fizzy card ls --json type=bool
+FLAG fizzy card ls --limit type=int
+FLAG fizzy card ls --markdown type=bool
+FLAG fizzy card ls --page type=int
+FLAG fizzy card ls --profile type=string
+FLAG fizzy card ls --quiet type=bool
+FLAG fizzy card ls --search type=string
+FLAG fizzy card ls --sort type=string
+FLAG fizzy card ls --styled type=bool
+FLAG fizzy card ls --tag type=string
+FLAG fizzy card ls --token type=string
+FLAG fizzy card ls --unassigned type=bool
+FLAG fizzy card ls --verbose type=bool
 FLAG fizzy card mark-read --agent type=bool
 FLAG fizzy card mark-read --api-url type=string
 FLAG fizzy card mark-read --count type=bool
@@ -942,6 +1112,20 @@ FLAG fizzy card reopen --quiet type=bool
 FLAG fizzy card reopen --styled type=bool
 FLAG fizzy card reopen --token type=string
 FLAG fizzy card reopen --verbose type=bool
+FLAG fizzy card rm --agent type=bool
+FLAG fizzy card rm --api-url type=string
+FLAG fizzy card rm --count type=bool
+FLAG fizzy card rm --help type=bool
+FLAG fizzy card rm --ids-only type=bool
+FLAG fizzy card rm --jq type=string
+FLAG fizzy card rm --json type=bool
+FLAG fizzy card rm --limit type=int
+FLAG fizzy card rm --markdown type=bool
+FLAG fizzy card rm --profile type=string
+FLAG fizzy card rm --quiet type=bool
+FLAG fizzy card rm --styled type=bool
+FLAG fizzy card rm --token type=string
+FLAG fizzy card rm --verbose type=bool
 FLAG fizzy card self-assign --agent type=bool
 FLAG fizzy card self-assign --api-url type=string
 FLAG fizzy card self-assign --count type=bool
@@ -1060,6 +1244,20 @@ FLAG fizzy card update --styled type=bool
 FLAG fizzy card update --title type=string
 FLAG fizzy card update --token type=string
 FLAG fizzy card update --verbose type=bool
+FLAG fizzy card view --agent type=bool
+FLAG fizzy card view --api-url type=string
+FLAG fizzy card view --count type=bool
+FLAG fizzy card view --help type=bool
+FLAG fizzy card view --ids-only type=bool
+FLAG fizzy card view --jq type=string
+FLAG fizzy card view --json type=bool
+FLAG fizzy card view --limit type=int
+FLAG fizzy card view --markdown type=bool
+FLAG fizzy card view --profile type=string
+FLAG fizzy card view --quiet type=bool
+FLAG fizzy card view --styled type=bool
+FLAG fizzy card view --token type=string
+FLAG fizzy card view --verbose type=bool
 FLAG fizzy card watch --agent type=bool
 FLAG fizzy card watch --api-url type=string
 FLAG fizzy card watch --count type=bool
@@ -1149,6 +1347,21 @@ FLAG fizzy column list --quiet type=bool
 FLAG fizzy column list --styled type=bool
 FLAG fizzy column list --token type=string
 FLAG fizzy column list --verbose type=bool
+FLAG fizzy column ls --agent type=bool
+FLAG fizzy column ls --api-url type=string
+FLAG fizzy column ls --board type=string
+FLAG fizzy column ls --count type=bool
+FLAG fizzy column ls --help type=bool
+FLAG fizzy column ls --ids-only type=bool
+FLAG fizzy column ls --jq type=string
+FLAG fizzy column ls --json type=bool
+FLAG fizzy column ls --limit type=int
+FLAG fizzy column ls --markdown type=bool
+FLAG fizzy column ls --profile type=string
+FLAG fizzy column ls --quiet type=bool
+FLAG fizzy column ls --styled type=bool
+FLAG fizzy column ls --token type=string
+FLAG fizzy column ls --verbose type=bool
 FLAG fizzy column move-left --agent type=bool
 FLAG fizzy column move-left --api-url type=string
 FLAG fizzy column move-left --count type=bool
@@ -1177,6 +1390,21 @@ FLAG fizzy column move-right --quiet type=bool
 FLAG fizzy column move-right --styled type=bool
 FLAG fizzy column move-right --token type=string
 FLAG fizzy column move-right --verbose type=bool
+FLAG fizzy column rm --agent type=bool
+FLAG fizzy column rm --api-url type=string
+FLAG fizzy column rm --board type=string
+FLAG fizzy column rm --count type=bool
+FLAG fizzy column rm --help type=bool
+FLAG fizzy column rm --ids-only type=bool
+FLAG fizzy column rm --jq type=string
+FLAG fizzy column rm --json type=bool
+FLAG fizzy column rm --limit type=int
+FLAG fizzy column rm --markdown type=bool
+FLAG fizzy column rm --profile type=string
+FLAG fizzy column rm --quiet type=bool
+FLAG fizzy column rm --styled type=bool
+FLAG fizzy column rm --token type=string
+FLAG fizzy column rm --verbose type=bool
 FLAG fizzy column show --agent type=bool
 FLAG fizzy column show --api-url type=string
 FLAG fizzy column show --board type=string
@@ -1209,6 +1437,21 @@ FLAG fizzy column update --quiet type=bool
 FLAG fizzy column update --styled type=bool
 FLAG fizzy column update --token type=string
 FLAG fizzy column update --verbose type=bool
+FLAG fizzy column view --agent type=bool
+FLAG fizzy column view --api-url type=string
+FLAG fizzy column view --board type=string
+FLAG fizzy column view --count type=bool
+FLAG fizzy column view --help type=bool
+FLAG fizzy column view --ids-only type=bool
+FLAG fizzy column view --jq type=string
+FLAG fizzy column view --json type=bool
+FLAG fizzy column view --limit type=int
+FLAG fizzy column view --markdown type=bool
+FLAG fizzy column view --profile type=string
+FLAG fizzy column view --quiet type=bool
+FLAG fizzy column view --styled type=bool
+FLAG fizzy column view --token type=string
+FLAG fizzy column view --verbose type=bool
 FLAG fizzy commands --agent type=bool
 FLAG fizzy commands --api-url type=string
 FLAG fizzy commands --count type=bool
@@ -1296,6 +1539,21 @@ FLAG fizzy comment attachments show --quiet type=bool
 FLAG fizzy comment attachments show --styled type=bool
 FLAG fizzy comment attachments show --token type=string
 FLAG fizzy comment attachments show --verbose type=bool
+FLAG fizzy comment attachments view --agent type=bool
+FLAG fizzy comment attachments view --api-url type=string
+FLAG fizzy comment attachments view --card type=string
+FLAG fizzy comment attachments view --count type=bool
+FLAG fizzy comment attachments view --help type=bool
+FLAG fizzy comment attachments view --ids-only type=bool
+FLAG fizzy comment attachments view --jq type=string
+FLAG fizzy comment attachments view --json type=bool
+FLAG fizzy comment attachments view --limit type=int
+FLAG fizzy comment attachments view --markdown type=bool
+FLAG fizzy comment attachments view --profile type=string
+FLAG fizzy comment attachments view --quiet type=bool
+FLAG fizzy comment attachments view --styled type=bool
+FLAG fizzy comment attachments view --token type=string
+FLAG fizzy comment attachments view --verbose type=bool
 FLAG fizzy comment create --agent type=bool
 FLAG fizzy comment create --api-url type=string
 FLAG fizzy comment create --body type=string
@@ -1360,6 +1618,38 @@ FLAG fizzy comment list --quiet type=bool
 FLAG fizzy comment list --styled type=bool
 FLAG fizzy comment list --token type=string
 FLAG fizzy comment list --verbose type=bool
+FLAG fizzy comment ls --agent type=bool
+FLAG fizzy comment ls --all type=bool
+FLAG fizzy comment ls --api-url type=string
+FLAG fizzy comment ls --card type=string
+FLAG fizzy comment ls --count type=bool
+FLAG fizzy comment ls --help type=bool
+FLAG fizzy comment ls --ids-only type=bool
+FLAG fizzy comment ls --jq type=string
+FLAG fizzy comment ls --json type=bool
+FLAG fizzy comment ls --limit type=int
+FLAG fizzy comment ls --markdown type=bool
+FLAG fizzy comment ls --page type=int
+FLAG fizzy comment ls --profile type=string
+FLAG fizzy comment ls --quiet type=bool
+FLAG fizzy comment ls --styled type=bool
+FLAG fizzy comment ls --token type=string
+FLAG fizzy comment ls --verbose type=bool
+FLAG fizzy comment rm --agent type=bool
+FLAG fizzy comment rm --api-url type=string
+FLAG fizzy comment rm --card type=string
+FLAG fizzy comment rm --count type=bool
+FLAG fizzy comment rm --help type=bool
+FLAG fizzy comment rm --ids-only type=bool
+FLAG fizzy comment rm --jq type=string
+FLAG fizzy comment rm --json type=bool
+FLAG fizzy comment rm --limit type=int
+FLAG fizzy comment rm --markdown type=bool
+FLAG fizzy comment rm --profile type=string
+FLAG fizzy comment rm --quiet type=bool
+FLAG fizzy comment rm --styled type=bool
+FLAG fizzy comment rm --token type=string
+FLAG fizzy comment rm --verbose type=bool
 FLAG fizzy comment show --agent type=bool
 FLAG fizzy comment show --api-url type=string
 FLAG fizzy comment show --card type=string
@@ -1392,6 +1682,21 @@ FLAG fizzy comment update --quiet type=bool
 FLAG fizzy comment update --styled type=bool
 FLAG fizzy comment update --token type=string
 FLAG fizzy comment update --verbose type=bool
+FLAG fizzy comment view --agent type=bool
+FLAG fizzy comment view --api-url type=string
+FLAG fizzy comment view --card type=string
+FLAG fizzy comment view --count type=bool
+FLAG fizzy comment view --help type=bool
+FLAG fizzy comment view --ids-only type=bool
+FLAG fizzy comment view --jq type=string
+FLAG fizzy comment view --json type=bool
+FLAG fizzy comment view --limit type=int
+FLAG fizzy comment view --markdown type=bool
+FLAG fizzy comment view --profile type=string
+FLAG fizzy comment view --quiet type=bool
+FLAG fizzy comment view --styled type=bool
+FLAG fizzy comment view --token type=string
+FLAG fizzy comment view --verbose type=bool
 FLAG fizzy completion --agent type=bool
 FLAG fizzy completion --api-url type=string
 FLAG fizzy completion --count type=bool
@@ -1462,6 +1767,20 @@ FLAG fizzy identity show --quiet type=bool
 FLAG fizzy identity show --styled type=bool
 FLAG fizzy identity show --token type=string
 FLAG fizzy identity show --verbose type=bool
+FLAG fizzy identity view --agent type=bool
+FLAG fizzy identity view --api-url type=string
+FLAG fizzy identity view --count type=bool
+FLAG fizzy identity view --help type=bool
+FLAG fizzy identity view --ids-only type=bool
+FLAG fizzy identity view --jq type=string
+FLAG fizzy identity view --json type=bool
+FLAG fizzy identity view --limit type=int
+FLAG fizzy identity view --markdown type=bool
+FLAG fizzy identity view --profile type=string
+FLAG fizzy identity view --quiet type=bool
+FLAG fizzy identity view --styled type=bool
+FLAG fizzy identity view --token type=string
+FLAG fizzy identity view --verbose type=bool
 FLAG fizzy migrate --agent type=bool
 FLAG fizzy migrate --api-url type=string
 FLAG fizzy migrate --count type=bool
@@ -1554,6 +1873,22 @@ FLAG fizzy notification list --quiet type=bool
 FLAG fizzy notification list --styled type=bool
 FLAG fizzy notification list --token type=string
 FLAG fizzy notification list --verbose type=bool
+FLAG fizzy notification ls --agent type=bool
+FLAG fizzy notification ls --all type=bool
+FLAG fizzy notification ls --api-url type=string
+FLAG fizzy notification ls --count type=bool
+FLAG fizzy notification ls --help type=bool
+FLAG fizzy notification ls --ids-only type=bool
+FLAG fizzy notification ls --jq type=string
+FLAG fizzy notification ls --json type=bool
+FLAG fizzy notification ls --limit type=int
+FLAG fizzy notification ls --markdown type=bool
+FLAG fizzy notification ls --page type=int
+FLAG fizzy notification ls --profile type=string
+FLAG fizzy notification ls --quiet type=bool
+FLAG fizzy notification ls --styled type=bool
+FLAG fizzy notification ls --token type=string
+FLAG fizzy notification ls --verbose type=bool
 FLAG fizzy notification read --agent type=bool
 FLAG fizzy notification read --api-url type=string
 FLAG fizzy notification read --count type=bool
@@ -1682,6 +2017,20 @@ FLAG fizzy pin list --quiet type=bool
 FLAG fizzy pin list --styled type=bool
 FLAG fizzy pin list --token type=string
 FLAG fizzy pin list --verbose type=bool
+FLAG fizzy pin ls --agent type=bool
+FLAG fizzy pin ls --api-url type=string
+FLAG fizzy pin ls --count type=bool
+FLAG fizzy pin ls --help type=bool
+FLAG fizzy pin ls --ids-only type=bool
+FLAG fizzy pin ls --jq type=string
+FLAG fizzy pin ls --json type=bool
+FLAG fizzy pin ls --limit type=int
+FLAG fizzy pin ls --markdown type=bool
+FLAG fizzy pin ls --profile type=string
+FLAG fizzy pin ls --quiet type=bool
+FLAG fizzy pin ls --styled type=bool
+FLAG fizzy pin ls --token type=string
+FLAG fizzy pin ls --verbose type=bool
 FLAG fizzy reaction --agent type=bool
 FLAG fizzy reaction --api-url type=string
 FLAG fizzy reaction --count type=bool
@@ -1759,6 +2108,38 @@ FLAG fizzy reaction list --quiet type=bool
 FLAG fizzy reaction list --styled type=bool
 FLAG fizzy reaction list --token type=string
 FLAG fizzy reaction list --verbose type=bool
+FLAG fizzy reaction ls --agent type=bool
+FLAG fizzy reaction ls --api-url type=string
+FLAG fizzy reaction ls --card type=string
+FLAG fizzy reaction ls --comment type=string
+FLAG fizzy reaction ls --count type=bool
+FLAG fizzy reaction ls --help type=bool
+FLAG fizzy reaction ls --ids-only type=bool
+FLAG fizzy reaction ls --jq type=string
+FLAG fizzy reaction ls --json type=bool
+FLAG fizzy reaction ls --limit type=int
+FLAG fizzy reaction ls --markdown type=bool
+FLAG fizzy reaction ls --profile type=string
+FLAG fizzy reaction ls --quiet type=bool
+FLAG fizzy reaction ls --styled type=bool
+FLAG fizzy reaction ls --token type=string
+FLAG fizzy reaction ls --verbose type=bool
+FLAG fizzy reaction rm --agent type=bool
+FLAG fizzy reaction rm --api-url type=string
+FLAG fizzy reaction rm --card type=string
+FLAG fizzy reaction rm --comment type=string
+FLAG fizzy reaction rm --count type=bool
+FLAG fizzy reaction rm --help type=bool
+FLAG fizzy reaction rm --ids-only type=bool
+FLAG fizzy reaction rm --jq type=string
+FLAG fizzy reaction rm --json type=bool
+FLAG fizzy reaction rm --limit type=int
+FLAG fizzy reaction rm --markdown type=bool
+FLAG fizzy reaction rm --profile type=string
+FLAG fizzy reaction rm --quiet type=bool
+FLAG fizzy reaction rm --styled type=bool
+FLAG fizzy reaction rm --token type=string
+FLAG fizzy reaction rm --verbose type=bool
 FLAG fizzy search --agent type=bool
 FLAG fizzy search --all type=bool
 FLAG fizzy search --api-url type=string
@@ -2014,6 +2395,36 @@ FLAG fizzy step list --quiet type=bool
 FLAG fizzy step list --styled type=bool
 FLAG fizzy step list --token type=string
 FLAG fizzy step list --verbose type=bool
+FLAG fizzy step ls --agent type=bool
+FLAG fizzy step ls --api-url type=string
+FLAG fizzy step ls --card type=string
+FLAG fizzy step ls --count type=bool
+FLAG fizzy step ls --help type=bool
+FLAG fizzy step ls --ids-only type=bool
+FLAG fizzy step ls --jq type=string
+FLAG fizzy step ls --json type=bool
+FLAG fizzy step ls --limit type=int
+FLAG fizzy step ls --markdown type=bool
+FLAG fizzy step ls --profile type=string
+FLAG fizzy step ls --quiet type=bool
+FLAG fizzy step ls --styled type=bool
+FLAG fizzy step ls --token type=string
+FLAG fizzy step ls --verbose type=bool
+FLAG fizzy step rm --agent type=bool
+FLAG fizzy step rm --api-url type=string
+FLAG fizzy step rm --card type=string
+FLAG fizzy step rm --count type=bool
+FLAG fizzy step rm --help type=bool
+FLAG fizzy step rm --ids-only type=bool
+FLAG fizzy step rm --jq type=string
+FLAG fizzy step rm --json type=bool
+FLAG fizzy step rm --limit type=int
+FLAG fizzy step rm --markdown type=bool
+FLAG fizzy step rm --profile type=string
+FLAG fizzy step rm --quiet type=bool
+FLAG fizzy step rm --styled type=bool
+FLAG fizzy step rm --token type=string
+FLAG fizzy step rm --verbose type=bool
 FLAG fizzy step show --agent type=bool
 FLAG fizzy step show --api-url type=string
 FLAG fizzy step show --card type=string
@@ -2047,6 +2458,21 @@ FLAG fizzy step update --quiet type=bool
 FLAG fizzy step update --styled type=bool
 FLAG fizzy step update --token type=string
 FLAG fizzy step update --verbose type=bool
+FLAG fizzy step view --agent type=bool
+FLAG fizzy step view --api-url type=string
+FLAG fizzy step view --card type=string
+FLAG fizzy step view --count type=bool
+FLAG fizzy step view --help type=bool
+FLAG fizzy step view --ids-only type=bool
+FLAG fizzy step view --jq type=string
+FLAG fizzy step view --json type=bool
+FLAG fizzy step view --limit type=int
+FLAG fizzy step view --markdown type=bool
+FLAG fizzy step view --profile type=string
+FLAG fizzy step view --quiet type=bool
+FLAG fizzy step view --styled type=bool
+FLAG fizzy step view --token type=string
+FLAG fizzy step view --verbose type=bool
 FLAG fizzy tag --agent type=bool
 FLAG fizzy tag --api-url type=string
 FLAG fizzy tag --count type=bool
@@ -2091,6 +2517,22 @@ FLAG fizzy tag list --quiet type=bool
 FLAG fizzy tag list --styled type=bool
 FLAG fizzy tag list --token type=string
 FLAG fizzy tag list --verbose type=bool
+FLAG fizzy tag ls --agent type=bool
+FLAG fizzy tag ls --all type=bool
+FLAG fizzy tag ls --api-url type=string
+FLAG fizzy tag ls --count type=bool
+FLAG fizzy tag ls --help type=bool
+FLAG fizzy tag ls --ids-only type=bool
+FLAG fizzy tag ls --jq type=string
+FLAG fizzy tag ls --json type=bool
+FLAG fizzy tag ls --limit type=int
+FLAG fizzy tag ls --markdown type=bool
+FLAG fizzy tag ls --page type=int
+FLAG fizzy tag ls --profile type=string
+FLAG fizzy tag ls --quiet type=bool
+FLAG fizzy tag ls --styled type=bool
+FLAG fizzy tag ls --token type=string
+FLAG fizzy tag ls --verbose type=bool
 FLAG fizzy upload --agent type=bool
 FLAG fizzy upload --api-url type=string
 FLAG fizzy upload --count type=bool
@@ -2205,6 +2647,22 @@ FLAG fizzy user list --quiet type=bool
 FLAG fizzy user list --styled type=bool
 FLAG fizzy user list --token type=string
 FLAG fizzy user list --verbose type=bool
+FLAG fizzy user ls --agent type=bool
+FLAG fizzy user ls --all type=bool
+FLAG fizzy user ls --api-url type=string
+FLAG fizzy user ls --count type=bool
+FLAG fizzy user ls --help type=bool
+FLAG fizzy user ls --ids-only type=bool
+FLAG fizzy user ls --jq type=string
+FLAG fizzy user ls --json type=bool
+FLAG fizzy user ls --limit type=int
+FLAG fizzy user ls --markdown type=bool
+FLAG fizzy user ls --page type=int
+FLAG fizzy user ls --profile type=string
+FLAG fizzy user ls --quiet type=bool
+FLAG fizzy user ls --styled type=bool
+FLAG fizzy user ls --token type=string
+FLAG fizzy user ls --verbose type=bool
 FLAG fizzy user push-subscription-create --agent type=bool
 FLAG fizzy user push-subscription-create --api-url type=string
 FLAG fizzy user push-subscription-create --auth-key type=string
@@ -2283,6 +2741,20 @@ FLAG fizzy user update --quiet type=bool
 FLAG fizzy user update --styled type=bool
 FLAG fizzy user update --token type=string
 FLAG fizzy user update --verbose type=bool
+FLAG fizzy user view --agent type=bool
+FLAG fizzy user view --api-url type=string
+FLAG fizzy user view --count type=bool
+FLAG fizzy user view --help type=bool
+FLAG fizzy user view --ids-only type=bool
+FLAG fizzy user view --jq type=string
+FLAG fizzy user view --json type=bool
+FLAG fizzy user view --limit type=int
+FLAG fizzy user view --markdown type=bool
+FLAG fizzy user view --profile type=string
+FLAG fizzy user view --quiet type=bool
+FLAG fizzy user view --styled type=bool
+FLAG fizzy user view --token type=string
+FLAG fizzy user view --verbose type=bool
 FLAG fizzy version --agent type=bool
 FLAG fizzy version --api-url type=string
 FLAG fizzy version --count type=bool
@@ -2375,6 +2847,23 @@ FLAG fizzy webhook list --quiet type=bool
 FLAG fizzy webhook list --styled type=bool
 FLAG fizzy webhook list --token type=string
 FLAG fizzy webhook list --verbose type=bool
+FLAG fizzy webhook ls --agent type=bool
+FLAG fizzy webhook ls --all type=bool
+FLAG fizzy webhook ls --api-url type=string
+FLAG fizzy webhook ls --board type=string
+FLAG fizzy webhook ls --count type=bool
+FLAG fizzy webhook ls --help type=bool
+FLAG fizzy webhook ls --ids-only type=bool
+FLAG fizzy webhook ls --jq type=string
+FLAG fizzy webhook ls --json type=bool
+FLAG fizzy webhook ls --limit type=int
+FLAG fizzy webhook ls --markdown type=bool
+FLAG fizzy webhook ls --page type=int
+FLAG fizzy webhook ls --profile type=string
+FLAG fizzy webhook ls --quiet type=bool
+FLAG fizzy webhook ls --styled type=bool
+FLAG fizzy webhook ls --token type=string
+FLAG fizzy webhook ls --verbose type=bool
 FLAG fizzy webhook reactivate --agent type=bool
 FLAG fizzy webhook reactivate --api-url type=string
 FLAG fizzy webhook reactivate --board type=string
@@ -2390,6 +2879,21 @@ FLAG fizzy webhook reactivate --quiet type=bool
 FLAG fizzy webhook reactivate --styled type=bool
 FLAG fizzy webhook reactivate --token type=string
 FLAG fizzy webhook reactivate --verbose type=bool
+FLAG fizzy webhook rm --agent type=bool
+FLAG fizzy webhook rm --api-url type=string
+FLAG fizzy webhook rm --board type=string
+FLAG fizzy webhook rm --count type=bool
+FLAG fizzy webhook rm --help type=bool
+FLAG fizzy webhook rm --ids-only type=bool
+FLAG fizzy webhook rm --jq type=string
+FLAG fizzy webhook rm --json type=bool
+FLAG fizzy webhook rm --limit type=int
+FLAG fizzy webhook rm --markdown type=bool
+FLAG fizzy webhook rm --profile type=string
+FLAG fizzy webhook rm --quiet type=bool
+FLAG fizzy webhook rm --styled type=bool
+FLAG fizzy webhook rm --token type=string
+FLAG fizzy webhook rm --verbose type=bool
 FLAG fizzy webhook show --agent type=bool
 FLAG fizzy webhook show --api-url type=string
 FLAG fizzy webhook show --board type=string
@@ -2422,6 +2926,21 @@ FLAG fizzy webhook update --quiet type=bool
 FLAG fizzy webhook update --styled type=bool
 FLAG fizzy webhook update --token type=string
 FLAG fizzy webhook update --verbose type=bool
+FLAG fizzy webhook view --agent type=bool
+FLAG fizzy webhook view --api-url type=string
+FLAG fizzy webhook view --board type=string
+FLAG fizzy webhook view --count type=bool
+FLAG fizzy webhook view --help type=bool
+FLAG fizzy webhook view --ids-only type=bool
+FLAG fizzy webhook view --jq type=string
+FLAG fizzy webhook view --json type=bool
+FLAG fizzy webhook view --limit type=int
+FLAG fizzy webhook view --markdown type=bool
+FLAG fizzy webhook view --profile type=string
+FLAG fizzy webhook view --quiet type=bool
+FLAG fizzy webhook view --styled type=bool
+FLAG fizzy webhook view --token type=string
+FLAG fizzy webhook view --verbose type=bool
 SUB fizzy account
 SUB fizzy account entropy
 SUB fizzy account export-create
@@ -2432,11 +2951,13 @@ SUB fizzy account join-code-show
 SUB fizzy account join-code-update
 SUB fizzy account settings-update
 SUB fizzy account show
+SUB fizzy account view
 SUB fizzy auth
 SUB fizzy auth help
 SUB fizzy auth list
 SUB fizzy auth login
 SUB fizzy auth logout
+SUB fizzy auth ls
 SUB fizzy auth status
 SUB fizzy auth switch
 SUB fizzy board
@@ -2447,18 +2968,22 @@ SUB fizzy board entropy
 SUB fizzy board help
 SUB fizzy board involvement
 SUB fizzy board list
+SUB fizzy board ls
 SUB fizzy board postponed
 SUB fizzy board publish
+SUB fizzy board rm
 SUB fizzy board show
 SUB fizzy board stream
 SUB fizzy board unpublish
 SUB fizzy board update
+SUB fizzy board view
 SUB fizzy card
 SUB fizzy card assign
 SUB fizzy card attachments
 SUB fizzy card attachments download
 SUB fizzy card attachments help
 SUB fizzy card attachments show
+SUB fizzy card attachments view
 SUB fizzy card close
 SUB fizzy card column
 SUB fizzy card create
@@ -2467,6 +2992,7 @@ SUB fizzy card golden
 SUB fizzy card help
 SUB fizzy card image-remove
 SUB fizzy card list
+SUB fizzy card ls
 SUB fizzy card mark-read
 SUB fizzy card mark-unread
 SUB fizzy card move
@@ -2474,6 +3000,7 @@ SUB fizzy card pin
 SUB fizzy card postpone
 SUB fizzy card publish
 SUB fizzy card reopen
+SUB fizzy card rm
 SUB fizzy card self-assign
 SUB fizzy card show
 SUB fizzy card tag
@@ -2482,39 +3009,49 @@ SUB fizzy card unpin
 SUB fizzy card untriage
 SUB fizzy card unwatch
 SUB fizzy card update
+SUB fizzy card view
 SUB fizzy card watch
 SUB fizzy column
 SUB fizzy column create
 SUB fizzy column delete
 SUB fizzy column help
 SUB fizzy column list
+SUB fizzy column ls
 SUB fizzy column move-left
 SUB fizzy column move-right
+SUB fizzy column rm
 SUB fizzy column show
 SUB fizzy column update
+SUB fizzy column view
 SUB fizzy commands
 SUB fizzy comment
 SUB fizzy comment attachments
 SUB fizzy comment attachments download
 SUB fizzy comment attachments help
 SUB fizzy comment attachments show
+SUB fizzy comment attachments view
 SUB fizzy comment create
 SUB fizzy comment delete
 SUB fizzy comment help
 SUB fizzy comment list
+SUB fizzy comment ls
+SUB fizzy comment rm
 SUB fizzy comment show
 SUB fizzy comment update
+SUB fizzy comment view
 SUB fizzy completion
 SUB fizzy help
 SUB fizzy identity
 SUB fizzy identity help
 SUB fizzy identity show
+SUB fizzy identity view
 SUB fizzy migrate
 SUB fizzy migrate board
 SUB fizzy migrate help
 SUB fizzy notification
 SUB fizzy notification help
 SUB fizzy notification list
+SUB fizzy notification ls
 SUB fizzy notification read
 SUB fizzy notification read-all
 SUB fizzy notification settings-show
@@ -2524,11 +3061,14 @@ SUB fizzy notification unread
 SUB fizzy pin
 SUB fizzy pin help
 SUB fizzy pin list
+SUB fizzy pin ls
 SUB fizzy reaction
 SUB fizzy reaction create
 SUB fizzy reaction delete
 SUB fizzy reaction help
 SUB fizzy reaction list
+SUB fizzy reaction ls
+SUB fizzy reaction rm
 SUB fizzy search
 SUB fizzy setup
 SUB fizzy setup claude
@@ -2546,11 +3086,15 @@ SUB fizzy step create
 SUB fizzy step delete
 SUB fizzy step help
 SUB fizzy step list
+SUB fizzy step ls
+SUB fizzy step rm
 SUB fizzy step show
 SUB fizzy step update
+SUB fizzy step view
 SUB fizzy tag
 SUB fizzy tag help
 SUB fizzy tag list
+SUB fizzy tag ls
 SUB fizzy upload
 SUB fizzy upload file
 SUB fizzy upload help
@@ -2559,17 +3103,22 @@ SUB fizzy user avatar-remove
 SUB fizzy user deactivate
 SUB fizzy user help
 SUB fizzy user list
+SUB fizzy user ls
 SUB fizzy user push-subscription-create
 SUB fizzy user push-subscription-delete
 SUB fizzy user role
 SUB fizzy user show
 SUB fizzy user update
+SUB fizzy user view
 SUB fizzy version
 SUB fizzy webhook
 SUB fizzy webhook create
 SUB fizzy webhook delete
 SUB fizzy webhook help
 SUB fizzy webhook list
+SUB fizzy webhook ls
 SUB fizzy webhook reactivate
+SUB fizzy webhook rm
 SUB fizzy webhook show
 SUB fizzy webhook update
+SUB fizzy webhook view
