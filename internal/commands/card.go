@@ -381,9 +381,9 @@ var cardUpdateCmd = &cobra.Command{
 			return err
 		}
 		if len(cardUpdateAttach) > 0 && !hasDescriptionInput {
-			currentData, _, err := getSDK().Cards().Get(cmd.Context(), cardNumber)
-			if err != nil {
-				return convertSDKError(err)
+			currentData, _, getErr := getSDK().Cards().Get(cmd.Context(), cardNumber)
+			if getErr != nil {
+				return convertSDKError(getErr)
 			}
 			if current, ok := normalizeAny(currentData).(map[string]any); ok {
 				if currentDescription, ok := current["description_html"].(string); ok {

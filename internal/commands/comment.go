@@ -212,9 +212,9 @@ var commentUpdateCmd = &cobra.Command{
 			return err
 		}
 		if len(commentUpdateAttach) > 0 && !hasBodyInput {
-			currentData, _, err := getSDK().Comments().Get(cmd.Context(), cardNumber, commentID)
-			if err != nil {
-				return convertSDKError(err)
+			currentData, _, getErr := getSDK().Comments().Get(cmd.Context(), cardNumber, commentID)
+			if getErr != nil {
+				return convertSDKError(getErr)
 			}
 			if current, ok := normalizeAny(currentData).(map[string]any); ok {
 				if currentBody, ok := current["body"].(map[string]any); ok {
