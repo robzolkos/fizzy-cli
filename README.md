@@ -188,8 +188,19 @@ fizzy skill install
 ```bash
 make build            # Build binary
 make test-unit        # Run unit tests (no API required)
-make test-e2e         # Run e2e tests (requires FIZZY_TEST_TOKEN, FIZZY_TEST_ACCOUNT)
+make e2e              # Run owner-only CLI contract e2e suite
+make e2e-run NAME=TestBoardList
 ```
+
+E2E requirements:
+- `FIZZY_TEST_TOKEN`
+- `FIZZY_TEST_ACCOUNT`
+- optional: `FIZZY_TEST_API_URL`
+- optional: `FIZZY_TEST_BINARY`
+
+Useful local inspection modes:
+- `FIZZY_E2E_KEEP_FIXTURE=1 make e2e`
+- `FIZZY_E2E_TEARDOWN_DELAY=120 make e2e`
 
 ## License
 

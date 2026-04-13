@@ -120,6 +120,18 @@ func LoadConfig() *Config {
 	}
 }
 
+// MissingVars returns names of any required env vars that are not set.
+func (c *Config) MissingVars() []string {
+	var missing []string
+	if c.Token == "" {
+		missing = append(missing, "FIZZY_TEST_TOKEN")
+	}
+	if c.Account == "" {
+		missing = append(missing, "FIZZY_TEST_ACCOUNT")
+	}
+	return missing
+}
+
 func getEnvOrDefault(key, defaultValue string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
