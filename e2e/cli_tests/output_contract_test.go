@@ -48,11 +48,9 @@ func assertNonJSON(t *testing.T, stdout, flag string) {
 	if s == "" {
 		t.Fatalf("--%s: produced empty output", flag)
 	}
-	var obj map[string]any
-	if err := json.Unmarshal([]byte(s), &obj); err == nil {
-		if _, hasOK := obj["ok"]; hasOK {
-			t.Fatalf("--%s: output looks like a JSON envelope", flag)
-		}
+	var v any
+	if err := json.Unmarshal([]byte(s), &v); err == nil {
+		t.Fatalf("--%s: output must not be valid JSON", flag)
 	}
 }
 

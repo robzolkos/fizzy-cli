@@ -3,7 +3,9 @@ package harness
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -54,14 +56,18 @@ func NewSharedFixture(cfg *Config) (*SharedFixture, error) {
 // Teardown removes all fixture resources. Deleting the board cascades to all
 // child resources (cards, columns, comments, steps, reactions).
 func (f *SharedFixture) Teardown() error {
+	var errs []string
 	if f.BoardID != "" {
 		r := f.run("board", "delete", f.BoardID)
 		if r.ExitCode != ExitSuccess && r.ExitCode != ExitNotFound {
-			return fmt.Errorf("delete fixture board %s: exit %d\nstderr: %s", f.BoardID, r.ExitCode, r.Stderr)
+			errs = append(errs, fmt.Sprintf("delete fixture board %s: exit %d\nstderr: %s", f.BoardID, r.ExitCode, r.Stderr))
 		}
 	}
 	if err := os.RemoveAll(f.configHome); err != nil {
-		return fmt.Errorf("remove fixture config home %s: %w", f.configHome, err)
+		errs = append(errs, fmt.Sprintf("remove fixture config home %s: %v", f.configHome, err))
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "\n"))
 	}
 	return nil
 }
@@ -143,6 +149,9 @@ func (f *SharedFixture) run(args ...string) *Result {
 		"FIZZY_PROFILE":    f.cfg.Account,
 		"FIZZY_NO_KEYRING": "1",
 		"HOME":             f.configHome,
+		"XDG_CONFIG_HOME":  filepath.Join(f.configHome, "config"),
+		"XDG_DATA_HOME":    filepath.Join(f.configHome, "data"),
+		"XDG_STATE_HOME":   filepath.Join(f.configHome, "state"),
 	}
 	return Execute(f.cfg.BinaryPath, fullArgs, env)
 }
