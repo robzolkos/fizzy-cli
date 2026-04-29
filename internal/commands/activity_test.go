@@ -127,6 +127,39 @@ func TestActivityList(t *testing.T) {
 		}
 	})
 
+	t.Run("next-page breadcrumb preserves active filters", func(t *testing.T) {
+		mock := NewMockClient()
+		mock.GetWithPaginationResponse = &client.APIResponse{
+			StatusCode: 200,
+			Data:       []any{map[string]any{"id": "1"}},
+			LinkNext:   "/activities.json?board_ids[]=board-123&creator_ids[]=user-123&page=2",
+		}
+
+		result := SetTestModeWithSDK(mock)
+		SetTestConfig("token", "account", "https://api.example.com")
+		defer resetTest()
+
+		activityListBoard = "board-123"
+		activityListCreator = "user-123"
+		err := activityListCmd.RunE(activityListCmd, []string{})
+		activityListBoard = ""
+		activityListCreator = ""
+
+		assertExitCode(t, err, 0)
+
+		var nextCmd string
+		for _, b := range result.Response.Breadcrumbs {
+			if b.Action == "next" {
+				nextCmd = b.Cmd
+				break
+			}
+		}
+		expected := "fizzy activity list --board board-123 --creator user-123 --page 2"
+		if nextCmd != expected {
+			t.Errorf("expected next breadcrumb %q, got %q", expected, nextCmd)
+		}
+	})
+
 	t.Run("requires authentication", func(t *testing.T) {
 		mock := NewMockClient()
 		SetTestModeWithSDK(mock)

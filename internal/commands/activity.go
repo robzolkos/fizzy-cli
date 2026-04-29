@@ -88,7 +88,15 @@ var activityListCmd = &cobra.Command{
 			if activityListPage == 0 {
 				nextPage = 2
 			}
-			breadcrumbs = append(breadcrumbs, breadcrumb("next", fmt.Sprintf("fizzy activity list --page %d", nextPage), "Next page"))
+			nextCmd := []string{"fizzy", "activity", "list"}
+			if activityListBoard != "" {
+				nextCmd = append(nextCmd, "--board", activityListBoard)
+			}
+			if activityListCreator != "" {
+				nextCmd = append(nextCmd, "--creator", activityListCreator)
+			}
+			nextCmd = append(nextCmd, "--page", strconv.Itoa(nextPage))
+			breadcrumbs = append(breadcrumbs, breadcrumb("next", strings.Join(nextCmd, " "), "Next page"))
 		}
 
 		printListPaginated(items, activityColumns, hasNext, linkNext, activityListAll, summary, breadcrumbs)

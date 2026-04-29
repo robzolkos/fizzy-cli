@@ -113,7 +113,6 @@ Want to change something?
 | notification | `notification list` | - | - | - | - | `notification tray`, `notification read-all`, `notification settings-show`, `notification settings-update` |
 | pin | `pin list` | - | - | - | - | `card pin NUMBER`, `card unpin NUMBER` |
 | webhook | `webhook list --board ID`, `webhook deliveries --board ID WEBHOOK_ID` | `webhook show ID --board ID` | `webhook create` | `webhook update ID` | `webhook delete ID` | `webhook reactivate ID` |
-| webhook | `webhook list --board ID` | `webhook show ID --board ID` | `webhook create` | `webhook update ID` | `webhook delete ID` | `webhook reactivate ID` |
 
 ---
 
