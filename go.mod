@@ -4,12 +4,12 @@ go 1.26
 
 require (
 	github.com/basecamp/cli v0.2.1
-	github.com/basecamp/fizzy-sdk/go v0.1.2
+	github.com/basecamp/fizzy-sdk/go v0.1.3
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/itchyny/gojq v0.12.19
-	github.com/mattn/go-isatty v0.0.21
+	github.com/mattn/go-isatty v0.0.22
 	github.com/muesli/termenv v0.16.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -43,7 +43,7 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/zalando/go-keyring v0.2.7 // indirect
+	github.com/zalando/go-keyring v0.2.8 // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
