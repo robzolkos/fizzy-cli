@@ -16,15 +16,15 @@ func TestAccessTokenCRUD(t *testing.T) {
 	if tokenID == "" {
 		t.Fatal("no token ID in create response")
 	}
-	if create.GetDataString("token") == "" {
-		t.Fatal("expected raw token value in create response")
-	}
 	deleted := false
 	t.Cleanup(func() {
 		if !deleted {
 			newHarness(t).Run("token", "delete", tokenID)
 		}
 	})
+	if create.GetDataString("token") == "" {
+		t.Fatal("expected raw token value in create response")
+	}
 
 	list := h.Run("token", "list")
 	assertOK(t, list)

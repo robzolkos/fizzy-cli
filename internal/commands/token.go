@@ -18,7 +18,10 @@ var tokenListCmd = &cobra.Command{
 	Short: "List personal access tokens",
 	Long:  "Lists your personal access tokens.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAuthAndAccount(); err != nil {
+		if err := requireAuth(); err != nil {
+			return err
+		}
+		if err := requireSDK(); err != nil {
 			return err
 		}
 
@@ -53,7 +56,10 @@ var tokenCreateCmd = &cobra.Command{
 	Short: "Create a personal access token",
 	Long:  "Creates a new personal access token. The token value is shown once at creation and cannot be retrieved later.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAuthAndAccount(); err != nil {
+		if err := requireAuth(); err != nil {
+			return err
+		}
+		if err := requireSDK(); err != nil {
 			return err
 		}
 
@@ -82,7 +88,9 @@ var tokenCreateCmd = &cobra.Command{
 
 		breadcrumbs := []Breadcrumb{
 			breadcrumb("list", "fizzy token list", "List tokens"),
-			breadcrumb("delete", fmt.Sprintf("fizzy token delete %s", id), "Delete this token"),
+		}
+		if id != "" {
+			breadcrumbs = append(breadcrumbs, breadcrumb("delete", fmt.Sprintf("fizzy token delete %s", id), "Delete this token"))
 		}
 
 		notice := "Save the token now — it will not be shown again."
@@ -97,7 +105,10 @@ var tokenDeleteCmd = &cobra.Command{
 	Long:  "Deletes a personal access token by ID.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireAuthAndAccount(); err != nil {
+		if err := requireAuth(); err != nil {
+			return err
+		}
+		if err := requireSDK(); err != nil {
 			return err
 		}
 
