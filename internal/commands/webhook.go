@@ -268,7 +268,7 @@ var webhookCreateCmd = &cobra.Command{
 			SubscribedActions: webhookCreateActions,
 		}
 
-		raw, _, err := ac.Webhooks().Create(cmd.Context(), boardID, req)
+		raw, resp, err := ac.Webhooks().Create(cmd.Context(), boardID, req)
 		if err != nil {
 			return convertSDKError(err)
 		}
@@ -287,7 +287,11 @@ var webhookCreateCmd = &cobra.Command{
 			}
 		}
 
-		printMutation(data, "", breadcrumbs)
+		if location := resp.Headers.Get("Location"); location != "" {
+			printMutationWithLocation(data, location, breadcrumbs)
+		} else {
+			printMutation(data, "", breadcrumbs)
+		}
 		return nil
 	},
 }
@@ -394,8 +398,14 @@ var webhookReactivateCmd = &cobra.Command{
 		webhookID := args[0]
 
 		ac := getSDK()
-		if _, err := ac.Webhooks().Activate(cmd.Context(), boardID, webhookID); err != nil {
+		resp, err := ac.Webhooks().Activate(cmd.Context(), boardID, webhookID)
+		if err != nil {
 			return convertSDKError(err)
+		}
+
+		data := normalizeAny(resp.Data)
+		if data == nil {
+			data = map[string]any{"id": webhookID, "active": true}
 		}
 
 		breadcrumbs := []Breadcrumb{
@@ -403,7 +413,7 @@ var webhookReactivateCmd = &cobra.Command{
 			breadcrumb("webhooks", fmt.Sprintf("fizzy webhook list --board %s", boardID), "List webhooks"),
 		}
 
-		printMutation(map[string]any{}, "", breadcrumbs)
+		printMutation(data, "", breadcrumbs)
 		return nil
 	},
 }
