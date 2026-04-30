@@ -8,7 +8,7 @@ import (
 )
 
 var searchCmd = &cobra.Command{
-	Use:   "search QUERY",
+	Use:   "search QUERY...",
 	Short: "Search cards",
 	Long: `Searches cards using the dedicated full-text search endpoint.
 
@@ -33,7 +33,7 @@ use 'fizzy card list' with --search and the relevant filter flags.`,
 
 		items := normalizeAny(raw)
 		count := dataCount(items)
-		summary := fmt.Sprintf("%d results for \"%s\"", count, query)
+		summary := fmt.Sprintf("%d results for %q", count, query)
 
 		breadcrumbs := []Breadcrumb{
 			breadcrumb("show", "fizzy card show <number>", "View card details"),

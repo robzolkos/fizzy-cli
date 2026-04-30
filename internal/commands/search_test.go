@@ -49,6 +49,9 @@ func TestSearch(t *testing.T) {
 		err := searchCmd.RunE(searchCmd, []string{"login", "error"})
 		assertExitCode(t, err, 0)
 
+		if len(mock.GetWithPaginationCalls) != 1 {
+			t.Fatalf("expected 1 GET call, got %d", len(mock.GetWithPaginationCalls))
+		}
 		if got := mock.GetWithPaginationCalls[0].Path; got != "/search.json?q=login+error" {
 			t.Errorf("expected '/search.json?q=login+error', got '%s'", got)
 		}
@@ -68,6 +71,9 @@ func TestSearch(t *testing.T) {
 		err := searchCmd.RunE(searchCmd, []string{"foo&bar=baz"})
 		assertExitCode(t, err, 0)
 
+		if len(mock.GetWithPaginationCalls) != 1 {
+			t.Fatalf("expected 1 GET call, got %d", len(mock.GetWithPaginationCalls))
+		}
 		if got := mock.GetWithPaginationCalls[0].Path; got != "/search.json?q=foo%26bar%3Dbaz" {
 			t.Errorf("expected URL-encoded q, got '%s'", got)
 		}
@@ -88,6 +94,9 @@ func TestSearch(t *testing.T) {
 		err := searchCmd.RunE(searchCmd, []string{"bug"})
 		assertExitCode(t, err, 0)
 
+		if len(mock.GetWithPaginationCalls) != 1 {
+			t.Fatalf("expected 1 GET call, got %d", len(mock.GetWithPaginationCalls))
+		}
 		if got := mock.GetWithPaginationCalls[0].Path; got != "/search.json?q=bug" {
 			t.Errorf("expected no board params in path, got '%s'", got)
 		}
