@@ -379,7 +379,7 @@ var rootCommandGroupTitles = map[string]string{
 }
 
 var rootCommandGroups = map[string][]string{
-	"core":            {"auth", "activity", "board", "card", "search"},
+	"core":            {"auth", "token", "activity", "board", "card", "search"},
 	"collaboration":   {"comment", "notification"},
 	"getting-started": {"setup", "signup"},
 	"discover":        {"doctor", "config", "commands", "version"},

@@ -24,6 +24,7 @@ ARG fizzy signup help 00 [command]
 ARG fizzy skill help 00 [command]
 ARG fizzy step help 00 [command]
 ARG fizzy tag help 00 [command]
+ARG fizzy token help 00 [command]
 ARG fizzy upload help 00 [command]
 ARG fizzy user help 00 [command]
 ARG fizzy webhook help 00 [command]
@@ -194,6 +195,13 @@ CMD fizzy tag
 CMD fizzy tag help
 CMD fizzy tag list
 CMD fizzy tag ls
+CMD fizzy token
+CMD fizzy token create
+CMD fizzy token delete
+CMD fizzy token help
+CMD fizzy token list
+CMD fizzy token ls
+CMD fizzy token rm
 CMD fizzy upload
 CMD fizzy upload file
 CMD fizzy upload help
@@ -2737,6 +2745,106 @@ FLAG fizzy tag ls --quiet type=bool
 FLAG fizzy tag ls --styled type=bool
 FLAG fizzy tag ls --token type=string
 FLAG fizzy tag ls --verbose type=bool
+FLAG fizzy token --agent type=bool
+FLAG fizzy token --api-url type=string
+FLAG fizzy token --count type=bool
+FLAG fizzy token --help type=bool
+FLAG fizzy token --ids-only type=bool
+FLAG fizzy token --jq type=string
+FLAG fizzy token --json type=bool
+FLAG fizzy token --limit type=int
+FLAG fizzy token --markdown type=bool
+FLAG fizzy token --profile type=string
+FLAG fizzy token --quiet type=bool
+FLAG fizzy token --styled type=bool
+FLAG fizzy token --token type=string
+FLAG fizzy token --verbose type=bool
+FLAG fizzy token create --agent type=bool
+FLAG fizzy token create --api-url type=string
+FLAG fizzy token create --count type=bool
+FLAG fizzy token create --description type=string
+FLAG fizzy token create --help type=bool
+FLAG fizzy token create --ids-only type=bool
+FLAG fizzy token create --jq type=string
+FLAG fizzy token create --json type=bool
+FLAG fizzy token create --limit type=int
+FLAG fizzy token create --markdown type=bool
+FLAG fizzy token create --permission type=string
+FLAG fizzy token create --profile type=string
+FLAG fizzy token create --quiet type=bool
+FLAG fizzy token create --styled type=bool
+FLAG fizzy token create --token type=string
+FLAG fizzy token create --verbose type=bool
+FLAG fizzy token delete --agent type=bool
+FLAG fizzy token delete --api-url type=string
+FLAG fizzy token delete --count type=bool
+FLAG fizzy token delete --help type=bool
+FLAG fizzy token delete --ids-only type=bool
+FLAG fizzy token delete --jq type=string
+FLAG fizzy token delete --json type=bool
+FLAG fizzy token delete --limit type=int
+FLAG fizzy token delete --markdown type=bool
+FLAG fizzy token delete --profile type=string
+FLAG fizzy token delete --quiet type=bool
+FLAG fizzy token delete --styled type=bool
+FLAG fizzy token delete --token type=string
+FLAG fizzy token delete --verbose type=bool
+FLAG fizzy token help --agent type=bool
+FLAG fizzy token help --api-url type=string
+FLAG fizzy token help --count type=bool
+FLAG fizzy token help --help type=bool
+FLAG fizzy token help --ids-only type=bool
+FLAG fizzy token help --jq type=string
+FLAG fizzy token help --json type=bool
+FLAG fizzy token help --limit type=int
+FLAG fizzy token help --markdown type=bool
+FLAG fizzy token help --profile type=string
+FLAG fizzy token help --quiet type=bool
+FLAG fizzy token help --styled type=bool
+FLAG fizzy token help --token type=string
+FLAG fizzy token help --verbose type=bool
+FLAG fizzy token list --agent type=bool
+FLAG fizzy token list --api-url type=string
+FLAG fizzy token list --count type=bool
+FLAG fizzy token list --help type=bool
+FLAG fizzy token list --ids-only type=bool
+FLAG fizzy token list --jq type=string
+FLAG fizzy token list --json type=bool
+FLAG fizzy token list --limit type=int
+FLAG fizzy token list --markdown type=bool
+FLAG fizzy token list --profile type=string
+FLAG fizzy token list --quiet type=bool
+FLAG fizzy token list --styled type=bool
+FLAG fizzy token list --token type=string
+FLAG fizzy token list --verbose type=bool
+FLAG fizzy token ls --agent type=bool
+FLAG fizzy token ls --api-url type=string
+FLAG fizzy token ls --count type=bool
+FLAG fizzy token ls --help type=bool
+FLAG fizzy token ls --ids-only type=bool
+FLAG fizzy token ls --jq type=string
+FLAG fizzy token ls --json type=bool
+FLAG fizzy token ls --limit type=int
+FLAG fizzy token ls --markdown type=bool
+FLAG fizzy token ls --profile type=string
+FLAG fizzy token ls --quiet type=bool
+FLAG fizzy token ls --styled type=bool
+FLAG fizzy token ls --token type=string
+FLAG fizzy token ls --verbose type=bool
+FLAG fizzy token rm --agent type=bool
+FLAG fizzy token rm --api-url type=string
+FLAG fizzy token rm --count type=bool
+FLAG fizzy token rm --help type=bool
+FLAG fizzy token rm --ids-only type=bool
+FLAG fizzy token rm --jq type=string
+FLAG fizzy token rm --json type=bool
+FLAG fizzy token rm --limit type=int
+FLAG fizzy token rm --markdown type=bool
+FLAG fizzy token rm --profile type=string
+FLAG fizzy token rm --quiet type=bool
+FLAG fizzy token rm --styled type=bool
+FLAG fizzy token rm --token type=string
+FLAG fizzy token rm --verbose type=bool
 FLAG fizzy upload --agent type=bool
 FLAG fizzy upload --api-url type=string
 FLAG fizzy upload --count type=bool
@@ -3385,6 +3493,13 @@ SUB fizzy tag
 SUB fizzy tag help
 SUB fizzy tag list
 SUB fizzy tag ls
+SUB fizzy token
+SUB fizzy token create
+SUB fizzy token delete
+SUB fizzy token help
+SUB fizzy token list
+SUB fizzy token ls
+SUB fizzy token rm
 SUB fizzy upload
 SUB fizzy upload file
 SUB fizzy upload help

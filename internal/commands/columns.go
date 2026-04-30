@@ -91,4 +91,11 @@ var (
 		{Header: "Created", Field: "created_at"},
 		{Header: "Updated", Field: "updated_at"},
 	}
+
+	tokenColumns = render.Columns{
+		{Header: "ID", Field: "id"},
+		{Header: "Description", Field: "description"},
+		{Header: "Permission", Field: "permission"},
+		{Header: "Created", Field: "created_at"},
+	}
 )

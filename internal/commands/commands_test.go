@@ -70,6 +70,25 @@ func TestCommandsFilterFindsActivity(t *testing.T) {
 	}
 }
 
+func TestCommandsFilterFindsToken(t *testing.T) {
+	mock := NewMockClient()
+	SetTestModeWithSDK(mock)
+	SetTestFormat(output.FormatStyled)
+	defer resetTest()
+
+	if err := commandsCmd.RunE(commandsCmd, []string{"token"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	raw := TestOutput()
+	if !strings.Contains(raw, "token") || !strings.Contains(raw, "create, delete, list") {
+		t.Fatalf("expected filtered catalog to include token actions, got:\n%s", raw)
+	}
+	if strings.Contains(raw, "No commands match") {
+		t.Fatalf("expected token to be discoverable, got:\n%s", raw)
+	}
+}
+
 func TestCommandsJSONOutputReturnsStructuredCatalog(t *testing.T) {
 	mock := NewMockClient()
 	result := SetTestModeWithSDK(mock)
